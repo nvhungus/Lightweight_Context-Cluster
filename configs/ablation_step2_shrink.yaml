@@ -1,0 +1,20 @@
+# ============================================================
+# STEP 2 — CoC Baseline + Point Shrink
+# Mục tiêu: thay 1 conv block bằng CoC + Point Shrink
+#           Đo: Accuracy giảm bao nhiêu? Params/FLOPs giảm bao nhiêu?
+# ============================================================
+model: coc_baseline
+epochs: 200
+lr: 0.001
+optimizer: adamw
+scheduler: cosine
+warmup_epochs: 5
+
+use_point_shrink: true
+use_hamming: false
+use_linear_bottleneck: false
+use_channel_shuffle: false
+
+shrink_k: 8
+
+result_file: results/step2_coc_shrink.json

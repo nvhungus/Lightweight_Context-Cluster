@@ -1,0 +1,21 @@
+# ============================================================
+# STEP 4 — HBCC Full: Point Shrink + Hamming + Bottleneck + Channel Shuffle
+# Mục tiêu: full lightweight — so sánh toàn diện với baseline
+# ============================================================
+model: hbcc
+epochs: 200
+lr: 0.001
+optimizer: adamw
+scheduler: cosine
+warmup_epochs: 5
+
+use_point_shrink: true
+use_hamming: true
+use_linear_bottleneck: true
+use_channel_shuffle: true
+
+shrink_k: 8
+coc_heads: 4
+coc_head_dim: 16
+
+result_file: results/step4_hbcc_full.json

@@ -1,0 +1,20 @@
+# ============================================================
+# STEP 1 — Baseline: ResNet-18 thuần trên CIFAR-10
+# Mục tiêu: đo Accuracy, FLOPs, Params làm mốc
+# ============================================================
+# Kế thừa toàn bộ base.yaml, chỉ ghi đè những gì khác
+
+model: resnet18
+epochs: 200
+lr: 0.001
+optimizer: adamw
+scheduler: cosine
+warmup_epochs: 5
+
+use_point_shrink: false
+use_hamming: false
+use_linear_bottleneck: false
+use_channel_shuffle: false
+
+# Kết quả lưu vào
+result_file: results/step1_baseline.json

@@ -1,0 +1,65 @@
+# ============================================================
+# BASE CONFIG — Lightweight CoC Project
+# Tất cả config ablation kế thừa từ file này
+# ============================================================
+
+# --- Dataset ---
+dataset: cifar10
+data_dir: data/raw          # torchvision tự tải về đây; trên Kaggle đổi thành /kaggle/input/cifar-10-python
+num_classes: 10
+img_size: 32
+
+# --- DataLoader ---
+batch_size: 128
+num_workers: 4
+pin_memory: true
+
+# --- Augmentation ---
+use_random_crop: true
+use_random_flip: true
+use_cutout: false
+use_mixup: false
+use_autoaugment: false
+
+# --- Optimizer ---
+optimizer: adamw
+lr: 0.001
+weight_decay: 0.05
+momentum: 0.9             # chỉ dùng khi optimizer là SGD
+
+# --- Scheduler ---
+scheduler: cosine
+warmup_epochs: 5
+min_lr: 1.0e-6
+epochs: 200
+
+# --- Model ---
+model: resnet18           # resnet18 | coc_baseline | hbcc
+
+# Ablation flags (mặc định TẮT hết — bật dần từng step)
+use_point_shrink: false
+use_hamming: false
+use_linear_bottleneck: false
+use_channel_shuffle: false
+
+# Hyper-params cho CoC block
+coc_heads: 4
+coc_head_dim: 16
+coc_proposal_w: 2
+coc_proposal_h: 2
+coc_fold_w: 1             # CIFAR-10 nhỏ: không chia region (fold=1)
+coc_fold_h: 1
+
+# Hyper-params cho Point Shrink
+shrink_k: 8               # gom 8-neighborhood thành 1 siêu điểm
+
+# --- Logging & Saving ---
+log_dir: experiments
+save_dir: experiments
+log_interval: 50          # log mỗi N batch
+save_best: true           # lưu checkpoint tốt nhất
+
+# --- Misc ---
+seed: 42
+device: cuda              # cuda | cpu
+amp: false                # Automatic Mixed Precision (bật khi train trên GPU lớn)

@@ -1,0 +1,44 @@
+# ============================================================
+# HBCC FULL — Config tối ưu cuối cùng (dùng để train chính thức)
+# ============================================================
+model: hbcc
+dataset: cifar10
+data_dir: data/raw
+num_classes: 10
+img_size: 32
+
+batch_size: 128
+num_workers: 4
+epochs: 300
+lr: 0.001
+optimizer: adamw
+weight_decay: 0.05
+scheduler: cosine
+warmup_epochs: 10
+min_lr: 1.0e-6
+
+use_point_shrink: true
+use_hamming: true
+use_linear_bottleneck: true
+use_channel_shuffle: true
+
+shrink_k: 8
+coc_heads: 4
+coc_head_dim: 16
+coc_proposal_w: 2
+coc_proposal_h: 2
+coc_fold_w: 1
+coc_fold_h: 1
+
+use_random_crop: true
+use_random_flip: true
+use_cutout: true
+use_mixup: true
+
+amp: false
+seed: 42
+device: cuda
+
+log_dir: experiments
+save_dir: experiments
+result_file: results/hbcc_full.json
