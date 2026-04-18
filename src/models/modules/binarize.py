@@ -82,3 +82,48 @@ def binarize_tensor(x: torch.Tensor, use_ste: bool = True) -> torch.Tensor:
     if use_ste:
         return ste_sign(x)
     return x.sign()
+
+# ─────────────────────────────────────────────
+# 4. Strict STE Function (Đảm bảo tuyệt đối {-1, 1})
+# ─────────────────────────────────────────────
+
+class StrictSTESignFunction(torch.autograd.Function):
+    """
+    Giống STE thông thường nhưng xử lý triệt để trường hợp x = 0.
+    PyTorch x.sign() trả về 0 khi x=0. Hàm này ép x >= 0 thành +1, x < 0 thành -1.
+    """
+    @staticmethod
+    def forward(ctx, x: torch.Tensor) -> torch.Tensor:
+        ctx.save_for_backward(x)
+        # Ép nghiêm ngặt về {-1, 1}, không có số 0
+        return x.ge(0).float() * 2.0 - 1.0
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor) -> torch.Tensor:
+        (x,) = ctx.saved_tensors
+        grad_input = grad_output * (x.abs() <= 1).float()
+        return grad_input
+
+def strict_ste_sign(x: torch.Tensor) -> torch.Tensor:
+    return StrictSTESignFunction.apply(x)
+
+
+# ─────────────────────────────────────────────
+# 5. Layer phục vụ Ablation & Trực quan hóa (Notebook 03)
+# ─────────────────────────────────────────────
+
+class BinarizeAblationLayer(nn.Module):
+    """
+    Layer đặc biệt dùng để trực quan hóa sự sụp đổ không gian (Manifold Collapse).
+    Cho phép chèn một hàm phi tuyến (vd: ReLU) trước khi binarize để đối chứng.
+    """
+    def __init__(self, use_activation: bool = False):
+        super().__init__()
+        self.use_activation = use_activation
+        self.act = nn.ReLU() if use_activation else nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Nếu use_activation=True: các giá trị âm bị biến thành 0.
+        # strict_ste_sign(0) sẽ biến toàn bộ thành +1 -> Mất thông tin!
+        x = self.act(x)
+        return strict_ste_sign(x)
