@@ -1,0 +1,60 @@
+# ============================================================
+# KAGGLE BASE CONFIG — Override cho môi trường Kaggle T4
+# Kế thừa toàn bộ logic từ ../base.yaml, chỉ đổi paths + hardware
+# ============================================================
+
+dataset: cifar10
+# Kaggle: torchvision tự tải CIFAR-10 vào /kaggle/working/data/
+# (Nếu đã add dataset "cifar-10-python" từ Kaggle Datasets thì đổi thành:
+#   data_dir: /kaggle/input/cifar-10-python)
+data_dir: /kaggle/working/data
+num_classes: 10
+img_size: 32
+
+# --- DataLoader ---
+batch_size: 256      # T4 có 15GB VRAM → tăng từ 128 lên 256
+num_workers: 2       # Kaggle: dùng 2 workers là tối ưu
+pin_memory: true
+
+# --- Augmentation ---
+use_random_crop: true
+use_random_flip: true
+use_cutout: false
+use_mixup: false
+use_autoaugment: false
+
+# --- Optimizer ---
+optimizer: adamw
+lr: 0.001
+weight_decay: 0.05
+
+# --- Scheduler ---
+scheduler: cosine
+warmup_epochs: 5
+min_lr: 1.0e-6
+epochs: 200
+
+# --- Hardware ---
+device: cuda
+amp: true            # T4 hỗ trợ fp16 tốt → giảm ~30% thời gian training
+
+# --- Ablation flags (mặc định tắt) ---
+use_point_shrink: false
+use_hamming: false
+use_linear_bottleneck: false
+use_channel_shuffle: false
+
+# --- CoC hyper-params ---
+coc_heads: 4
+coc_head_dim: 16
+coc_proposal_w: 2
+coc_proposal_h: 2
+coc_fold_w: 1
+coc_fold_h: 1
+shrink_k: 8
+
+# --- Logging & Saving (tất cả vào /kaggle/working/ để tải về được) ---
+log_dir: /kaggle/working/experiments
+save_dir: /kaggle/working/experiments
+log_interval: 100
+seed: 42

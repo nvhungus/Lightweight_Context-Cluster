@@ -214,3 +214,4 @@ data/
 
 # Ignore large files
 *.tar.gz
+*.pth

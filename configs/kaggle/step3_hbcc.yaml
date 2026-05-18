@@ -1,0 +1,7 @@
+# KAGGLE — Step 3: CoC + Point Shrink + Hamming Distance
+model: coc_baseline
+use_point_shrink: true
+use_hamming: true
+use_linear_bottleneck: false
+use_channel_shuffle: false
+result_file: /kaggle/working/results/step3_coc_hamming.json
