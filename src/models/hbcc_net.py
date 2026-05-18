@@ -181,10 +181,9 @@ def build_model(cfg: dict) -> nn.Module:
         model = build_resnet18_cifar(num_classes=num_classes)
 
     elif model_name == "coc_baseline":
+        # coc_small_cifar hardcodes heads=4, head_dim=16 — không truyền lại để tránh conflict
         model = coc_small_cifar(
             num_classes=num_classes,
-            heads=cfg.get("coc_heads", 4),
-            head_dim=cfg.get("coc_head_dim", 16),
             proposal_w=cfg.get("coc_proposal_w", 2),
             proposal_h=cfg.get("coc_proposal_h", 2),
             fold_w=cfg.get("coc_fold_w", 1),

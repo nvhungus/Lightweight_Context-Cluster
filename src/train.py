@@ -26,11 +26,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.dataset import build_dataloaders
 from src.models import build_model
+from src.models.modules.pruning_mask import PruningMask
 from src.utils.metrics import AverageMeter, accuracy
 from src.utils.logger import TrainLogger
 from src.utils.scheduler import build_scheduler
 from src.utils.profiler import profile_model
 from src.utils.throughput import measure_throughput
+
+
+def collect_crispness_loss(model: nn.Module) -> torch.Tensor:
+    """Sum crispness loss từ tất cả PruningMask trong model."""
+    device = next(model.parameters()).device
+    total = torch.zeros(1, device=device)
+    for m in model.modules():
+        if isinstance(m, PruningMask):
+            total = total + m.crispness_loss()
+    return total
 
 
 # ─────────────────────────────────────────────
@@ -120,6 +131,8 @@ def train_one_epoch(
 
         optimizer.zero_grad()
 
+        crisp_weight = cfg.get("crispness_loss_weight", 0.0)
+
         if scaler is not None:
             with torch.cuda.amp.autocast():
                 outputs = model(images)
@@ -128,6 +141,8 @@ def train_one_epoch(
                            (1 - lam) * criterion(outputs, labels_b)
                 else:
                     loss = criterion(outputs, labels)
+                if crisp_weight > 0:
+                    loss = loss + crisp_weight * collect_crispness_loss(model)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -140,6 +155,8 @@ def train_one_epoch(
                        (1 - lam) * criterion(outputs, labels_b)
             else:
                 loss = criterion(outputs, labels)
+            if crisp_weight > 0:
+                loss = loss + crisp_weight * collect_crispness_loss(model)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
@@ -304,9 +321,13 @@ def main():
         "latency_ms":     tp["latency_ms"],
         "ablation_flags": {
             "use_point_shrink":      cfg.get("use_point_shrink", False),
+            "use_lbp_conv":          cfg.get("use_lbp_conv", False),
             "use_hamming":           cfg.get("use_hamming", False),
             "use_linear_bottleneck": cfg.get("use_linear_bottleneck", False),
             "use_channel_shuffle":   cfg.get("use_channel_shuffle", False),
+            "top_k_centers":         cfg.get("top_k_centers", None),
+            "use_pruning_mask":      cfg.get("use_pruning_mask", False),
+            "crispness_loss_weight": cfg.get("crispness_loss_weight", 0.0),
         },
     }
 

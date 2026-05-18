@@ -1,0 +1,7 @@
+# KAGGLE — Step 4: HBCC Full (tất cả flags bật)
+model: hbcc
+use_point_shrink: true
+use_hamming: true
+use_linear_bottleneck: true
+use_channel_shuffle: true
+result_file: /kaggle/working/results/step4_hbcc_full.json

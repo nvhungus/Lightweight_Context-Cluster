@@ -127,3 +127,32 @@ class BinarizeAblationLayer(nn.Module):
         # strict_ste_sign(0) sẽ biến toàn bộ thành +1 -> Mất thông tin!
         x = self.act(x)
         return strict_ste_sign(x)
+    
+    # src/models/modules/binarize.py
+
+class QReLUFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input):
+        ctx.save_for_backward(input)
+        # Bậc thang: x > 0 thì trả về 1, ngược lại 0
+        return (input > 0).float()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        # STE: Đạo hàm bằng 1 nếu 0 <= x <= 2, ngược lại bằng 0
+        mask = (input >= 0) & (input <= 2)
+        grad_input[~mask] = 0
+        return grad_input
+
+def qrelu(input):
+    return QReLUFunction.apply(input)
+
+class QReLU(nn.Module):
+    """
+    Quantized ReLU Activation với STE.
+    Đầu ra nhị phân {0, 1}.
+    """
+    def forward(self, x):
+        return qrelu(x)

@@ -1,0 +1,7 @@
+# KAGGLE — Step 1: ResNet-18 baseline
+model: resnet18
+use_point_shrink: false
+use_hamming: false
+use_linear_bottleneck: false
+use_channel_shuffle: false
+result_file: /kaggle/working/results/step1_baseline.json

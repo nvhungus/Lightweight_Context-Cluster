@@ -25,6 +25,8 @@ from .binarize import binarize_tensor
 from .hamming_sim import weighted_hamming_sim
 from .point_shrink import PointShrink
 from .bottleneck import LinearBottleneck, BranchFusion
+from .lbp_conv import LBPConv
+from .pruning_mask import PruningMask
 
 
 # ─────────────────────────────────────────────
@@ -49,11 +51,13 @@ class BinarizedCluster(nn.Module):
         heads: int = 4,
         head_dim: int = 16,
         use_hamming: bool = True,
+        top_k_centers: int = None,
     ):
         super().__init__()
-        self.heads      = heads
-        self.head_dim   = head_dim
-        self.use_hamming = use_hamming
+        self.heads         = heads
+        self.head_dim      = head_dim
+        self.use_hamming   = use_hamming
+        self.top_k_centers = top_k_centers
 
         self.f    = nn.Conv2d(dim, heads * head_dim, kernel_size=1)
         self.v    = nn.Conv2d(dim, heads * head_dim, kernel_size=1)
@@ -100,6 +104,15 @@ class BinarizedCluster(nn.Module):
 
         sim = self._compute_similarity(ctr_flat, pts_flat)        # [B, M, N]
 
+        # B3 — DynamicCenterFilter: loại bỏ tâm nhiễu/background
+        if self.top_k_centers is not None:
+            mass = sim.sum(-1)                                    # [B, M]
+            k = min(self.top_k_centers, mass.size(1))
+            topk_idx = mass.topk(k, dim=-1).indices              # [B, K]
+            center_mask = torch.zeros_like(mass)
+            center_mask.scatter_(1, topk_idx, 1.0)
+            sim = sim * center_mask.unsqueeze(-1)                 # zero-out low-mass centers
+
         # Hard-assign
         _, sim_max_idx = sim.max(dim=1, keepdim=True)
         mask = torch.zeros_like(sim)
@@ -125,28 +138,37 @@ class BinarizedCluster(nn.Module):
 
 class LocalBranch(nn.Module):
     """
-    Nhánh cục bộ: dùng PointShrink để trích đặc trưng cục bộ.
-    Thay thế cho LBPConv phức tạp — đơn giản hơn nhưng cùng triết lý.
+    Nhánh cục bộ trích đặc trưng texture cục bộ.
+
+    Thứ tự ưu tiên (theo ablation):
+        use_lbp_conv=True  → LBPConv (bộ lọc nhị phân cố định, đúng theory)
+        use_point_shrink=True (fallback) → PointShrink
+        cả hai False       → DW Conv 3×3 đơn giản
 
     Input : [B, C, H, W]
     Output: [B, C, H, W]
     """
 
-    def __init__(self, dim: int, use_point_shrink: bool = True):
+    def __init__(
+        self,
+        dim: int,
+        use_point_shrink: bool = True,
+        use_lbp_conv: bool = False,
+    ):
         super().__init__()
-        self.use_point_shrink = use_point_shrink
-        if use_point_shrink:
-            self.shrink = PointShrink(in_dim=dim, out_dim=dim, stride=1)
+        if use_lbp_conv:
+            self.op = LBPConv(dim)
+        elif use_point_shrink:
+            self.op = PointShrink(in_dim=dim, out_dim=dim, stride=1)
         else:
-            # Fallback: DW Conv 3×3 đơn giản
-            self.shrink = nn.Sequential(
+            self.op = nn.Sequential(
                 nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim, bias=False),
                 nn.BatchNorm2d(dim),
                 nn.GELU(),
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.shrink(x)
+        return self.op(x)
 
 
 # ─────────────────────────────────────────────
@@ -160,8 +182,11 @@ class HBCCBlock(nn.Module):
     Flags ablation:
         use_linear_bottleneck : bật Linear Bottleneck + branch split
         use_point_shrink      : bật Point Shrink trong local branch
+        use_lbp_conv          : bật LBPConv (ưu tiên hơn use_point_shrink)
         use_hamming           : bật Hamming Distance (thay Cosine)
         use_channel_shuffle   : bật Channel Shuffle khi fusion
+        top_k_centers         : số tâm cụm giữ lại (None = giữ hết)
+        use_pruning_mask      : bật PruningMask + CrispnessLoss (step4)
 
     Nếu TẮT hết flags → giống CoC block gốc (baseline)
     """
@@ -178,10 +203,13 @@ class HBCCBlock(nn.Module):
         # Ablation flags
         use_linear_bottleneck: bool = False,
         use_point_shrink: bool = False,
+        use_lbp_conv: bool = False,
         use_hamming: bool = False,
         use_channel_shuffle: bool = False,
         use_layer_scale: bool = True,
         layer_scale_init: float = 1e-5,
+        top_k_centers: int = None,
+        use_pruning_mask: bool = False,
     ):
         super().__init__()
         self.use_linear_bottleneck = use_linear_bottleneck
@@ -192,18 +220,25 @@ class HBCCBlock(nn.Module):
             # Nhánh đôi: Local + Global
             branch_dim = dim // 2
             self.bottleneck   = LinearBottleneck(dim, dim, expand_ratio=4)
-            self.local_branch = LocalBranch(branch_dim, use_point_shrink=use_point_shrink)
+            self.local_branch = LocalBranch(
+                branch_dim,
+                use_point_shrink=use_point_shrink,
+                use_lbp_conv=use_lbp_conv,
+            )
             self.global_branch = BinarizedCluster(
                 dim=branch_dim,
                 proposal_w=proposal_w, proposal_h=proposal_h,
                 heads=max(1, heads // 2), head_dim=head_dim,
                 use_hamming=use_hamming,
+                top_k_centers=top_k_centers,
             )
             self.fusion = BranchFusion(
                 in_dim=branch_dim,
                 out_dim=dim,
                 use_learned_fusion=not use_channel_shuffle,
             )
+            # B4: optional pruning mask trên local branch output
+            self.pruning_mask = PruningMask(branch_dim) if use_pruning_mask else None
         else:
             # Không bottleneck: dùng BinarizedCluster trực tiếp (giống CoC gốc)
             self.cluster = BinarizedCluster(
@@ -211,7 +246,9 @@ class HBCCBlock(nn.Module):
                 proposal_w=proposal_w, proposal_h=proposal_h,
                 heads=heads, head_dim=head_dim,
                 use_hamming=use_hamming,
+                top_k_centers=top_k_centers,
             )
+            self.pruning_mask = None
 
         # MLP (FFN)
         self.mlp = nn.Sequential(
@@ -231,6 +268,8 @@ class HBCCBlock(nn.Module):
         if self.use_linear_bottleneck:
             local_feat, global_feat = self.bottleneck(x)
             local_out  = self.local_branch(local_feat)
+            if self.pruning_mask is not None:
+                local_out = local_out * self.pruning_mask().view(1, -1, 1, 1)
             global_out = self.global_branch(global_feat)
             return self.fusion(local_out, global_out)
         else:
