@@ -188,6 +188,8 @@ def build_model(cfg: dict) -> nn.Module:
             proposal_h=cfg.get("coc_proposal_h", 2),
             fold_w=cfg.get("coc_fold_w", 1),
             fold_h=cfg.get("coc_fold_h", 1),
+            use_hamming=cfg.get("use_hamming", False),
+            use_point_shrink=cfg.get("use_point_shrink", False),
         )
 
     elif model_name == "hbcc":

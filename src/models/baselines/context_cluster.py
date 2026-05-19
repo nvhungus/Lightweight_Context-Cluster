@@ -13,6 +13,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
+from ..modules.binarize import binarize_tensor
+from ..modules.hamming_sim import weighted_hamming_sim
+from ..modules.point_shrink import PointShrink
+
 
 # ─────────────────────────────────────────────
 # Helpers
@@ -66,12 +70,18 @@ class Cluster(nn.Module):
         fold_h: int = 1,
         heads: int = 4,
         head_dim: int = 16,
+        use_hamming: bool = False,
+        use_point_shrink: bool = False,
     ):
         super().__init__()
-        self.heads    = heads
-        self.head_dim = head_dim
-        self.fold_w   = fold_w
-        self.fold_h   = fold_h
+        self.heads       = heads
+        self.head_dim    = head_dim
+        self.fold_w      = fold_w
+        self.fold_h      = fold_h
+        self.use_hamming = use_hamming
+
+        # PointShrink: DW+PW conv preprocessing trước khi clustering
+        self.point_shrink = PointShrink(dim, dim, stride=1) if use_point_shrink else nn.Identity()
 
         self.f    = nn.Conv2d(dim, heads * head_dim, kernel_size=1)   # similarity proj
         self.v    = nn.Conv2d(dim, heads * head_dim, kernel_size=1)   # value proj
@@ -83,6 +93,9 @@ class Cluster(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """x: [B, C, H, W]"""
+        # PointShrink preprocessing (Identity nếu use_point_shrink=False)
+        x     = self.point_shrink(x)
+
         value = self.v(x)                                             # [B, heads*d, H, W]
         x     = self.f(x)                                             # [B, heads*d, H, W]
 
@@ -106,13 +119,19 @@ class Cluster(nn.Module):
         value_centers = rearrange(self.centers_proposal(value), "b c w h -> b (w h) c")
         _, _, cw, ch  = centers.shape
 
-        # Cosine similarity: [B, M, N]   M=Cw*Ch, N=w*h
-        sim = torch.sigmoid(
-            self.sim_beta + self.sim_alpha * pairwise_cos_sim(
-                centers.reshape(b, c, -1).permute(0, 2, 1),   # [B, M, D]
-                x.reshape(b, c, -1).permute(0, 2, 1),          # [B, N, D]
+        ctr_flat = centers.reshape(b, c, -1).permute(0, 2, 1)   # [B, M, D]
+        pts_flat = x.reshape(b, c, -1).permute(0, 2, 1)          # [B, N, D]
+
+        # Similarity: Hamming (binarized) hoặc Cosine (CoC gốc)
+        if self.use_hamming:
+            ctr_b = binarize_tensor(ctr_flat, use_ste=self.training)
+            pts_b = binarize_tensor(pts_flat, use_ste=self.training)
+            # weighted_hamming_sim(x=[B,N,D], centers=[B,M,D]) → [B,M,N]
+            sim = weighted_hamming_sim(pts_b, ctr_b, self.sim_alpha, self.sim_beta)
+        else:
+            sim = torch.sigmoid(
+                self.sim_beta + self.sim_alpha * pairwise_cos_sim(ctr_flat, pts_flat)
             )
-        )
 
         # Hard-assign: mỗi điểm thuộc đúng 1 tâm
         sim_max, sim_max_idx = sim.max(dim=1, keepdim=True)
@@ -192,6 +211,8 @@ class ClusterBlock(nn.Module):
         fold_h: int = 1,
         heads: int = 4,
         head_dim: int = 16,
+        use_hamming: bool = False,
+        use_point_shrink: bool = False,
     ):
         super().__init__()
         self.norm1 = GroupNorm1(dim)
@@ -201,6 +222,8 @@ class ClusterBlock(nn.Module):
             proposal_w=proposal_w, proposal_h=proposal_h,
             fold_w=fold_w, fold_h=fold_h,
             heads=heads, head_dim=head_dim,
+            use_hamming=use_hamming,
+            use_point_shrink=use_point_shrink,
         )
         self.mlp = Mlp(dim, int(dim * mlp_ratio), drop=drop)
 
@@ -275,6 +298,8 @@ class CoCCIFAR(nn.Module):
         fold_w: int = 1,
         fold_h: int = 1,
         drop_rate: float = 0.0,
+        use_hamming: bool = False,
+        use_point_shrink: bool = False,
     ):
         super().__init__()
 
@@ -314,6 +339,8 @@ class CoCCIFAR(nn.Module):
                     fold_h=fold_h,
                     heads=heads,
                     head_dim=head_dim,
+                    use_hamming=use_hamming,
+                    use_point_shrink=use_point_shrink,
                 )
                 for _ in range(depth)
             ])
