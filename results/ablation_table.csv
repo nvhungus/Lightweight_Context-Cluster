@@ -1,0 +1,5 @@
+Step,Model,Acc@1 (%),Params (M),FLOPs (G),Throughput (img/s),PointShrink,Hamming,Bottleneck,ChShuffle
+Step 1,ResNet-18,94.27,11.17,1.111,403,No,No,No,No
+Step 2,CoC+Shrink,85.90,8.67,0.075,66,Yes,No,No,No
+Step 3,CoC+Hamming,85.57,8.67,0.075,70,Yes,Yes,No,No
+Step 4,HBCC Full,92.86,3.68,0.380,57,Yes,Yes,Yes,Yes
