@@ -1,0 +1,18 @@
+{
+  "model": "hbcc",
+  "best_val_acc1": 92.86000003662109,
+  "total_params": 3684798,
+  "flops": 379794432,
+  "throughput": 56.55,
+  "latency_ms": 17.6836,
+  "ablation_flags": {
+    "use_point_shrink": true,
+    "use_lbp_conv": false,
+    "use_hamming": true,
+    "use_linear_bottleneck": true,
+    "use_channel_shuffle": true,
+    "top_k_centers": null,
+    "use_pruning_mask": false,
+    "crispness_loss_weight": 0.0
+  }
+}
