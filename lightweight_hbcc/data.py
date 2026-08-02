@@ -12,6 +12,8 @@ CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
 CIFAR10_STD = (0.2470, 0.2435, 0.2616)
 CIFAR100_MEAN = (0.5071, 0.4867, 0.4408)
 CIFAR100_STD = (0.2675, 0.2565, 0.2761)
+PLANTVILLAGE_MEAN = (0.485, 0.456, 0.406)
+PLANTVILLAGE_STD = (0.229, 0.224, 0.225)
 
 
 def num_classes_for_dataset(name: str) -> int:
@@ -20,6 +22,8 @@ def num_classes_for_dataset(name: str) -> int:
         return 10
     if name == "cifar100":
         return 100
+    if name == "plantvillage":
+        return 38
     if name == "fake":
         return 10
     raise ValueError(f"Unsupported dataset: {name}")
@@ -30,16 +34,27 @@ def _transforms(name: str, train: bool, augment: bool, cfg: dict[str, Any] | Non
     name = name.lower()
     if name == "cifar100":
         mean, std = CIFAR100_MEAN, CIFAR100_STD
+    elif name == "plantvillage":
+        mean, std = PLANTVILLAGE_MEAN, PLANTVILLAGE_STD
     else:
         mean, std = CIFAR10_MEAN, CIFAR10_STD
     ops: list[Any] = []
-    if train and augment:
+    if name == "plantvillage":
+        if train and augment:
+            ops.extend([
+                transforms.RandomResizedCrop(32, scale=(0.7, 1.0)),
+                transforms.RandomHorizontalFlip(),
+            ])
+        else:
+            ops.extend([transforms.Resize(36), transforms.CenterCrop(32)])
+    elif train and augment:
         ops.extend(
             [
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
             ]
         )
+    if train and augment:
         randaugment = cfg.get("randaugment", {})
         if isinstance(randaugment, dict) and randaugment.get("enabled", False):
             ops.append(
@@ -137,6 +152,18 @@ def build_datasets(
         train_indices, val_indices = _train_val_indices(len(train_full), val_size, split_seed)
         train = Subset(train_full, train_indices)
         val = Subset(val_full, val_indices)
+    elif name == "plantvillage":
+        train_dir = cfg.get("train_dir")
+        val_dir = cfg.get("val_dir")
+        if not train_dir or not val_dir:
+            raise ValueError("PlantVillage requires data.train_dir and data.val_dir in config or as overrides.")
+        train = datasets.ImageFolder(str(train_dir), transform=_transforms(name, True, augment, cfg))
+        val = datasets.ImageFolder(str(val_dir), transform=_transforms(name, False, False, cfg))
+        test = (
+            datasets.ImageFolder(str(val_dir), transform=_transforms(name, False, False, cfg))
+            if include_test
+            else None
+        )
     elif name == "fake":
         transform = _transforms("cifar10", False, False, cfg)
         train = datasets.FakeData(size=int(cfg.get("fake_train_size", 512)), image_size=(3, 32, 32), num_classes=10, transform=transform)
