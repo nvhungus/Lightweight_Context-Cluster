@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from PIL import Image
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
@@ -16,6 +17,41 @@ PLANTVILLAGE_MEAN = (0.485, 0.456, 0.406)
 PLANTVILLAGE_STD = (0.229, 0.224, 0.225)
 FOOD101_MEAN = (0.485, 0.456, 0.406)
 FOOD101_STD = (0.229, 0.224, 0.225)
+TINY_IMAGENET_MEAN = (0.485, 0.456, 0.406)
+TINY_IMAGENET_STD  = (0.229, 0.224, 0.225)
+
+
+class _TinyImageNetVal(torch.utils.data.Dataset):
+    """Tiny-ImageNet val split.
+
+    The official val split uses a flat image directory plus an annotation file
+    (val_annotations.txt) that maps each filename to its wnid.  This class
+    reads that file and builds a list of (path, class_index) pairs using the
+    same wnid→index ordering as the train ImageFolder (sorted alphabetically).
+    """
+
+    def __init__(self, root: Path, wnid_to_idx: dict[str, int], transform=None) -> None:
+        ann_file = root / "val" / "val_annotations.txt"
+        img_dir  = root / "val" / "images"
+        self.samples: list[tuple[Path, int]] = []
+        for line in ann_file.read_text().splitlines():
+            parts = line.split("\t")
+            if len(parts) < 2:
+                continue
+            fname, wnid = parts[0].strip(), parts[1].strip()
+            if wnid in wnid_to_idx:
+                self.samples.append((img_dir / fname, wnid_to_idx[wnid]))
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int):
+        path, label = self.samples[idx]
+        img = Image.open(path).convert("RGB")
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, label
 
 
 def num_classes_for_dataset(name: str) -> int:
@@ -28,6 +64,8 @@ def num_classes_for_dataset(name: str) -> int:
         return 38
     if name == "food101":
         return 101
+    if name == "tiny_imagenet":
+        return 200
     if name == "fake":
         return 10
     raise ValueError(f"Unsupported dataset: {name}")
@@ -42,10 +80,12 @@ def _transforms(name: str, train: bool, augment: bool, cfg: dict[str, Any] | Non
         mean, std = PLANTVILLAGE_MEAN, PLANTVILLAGE_STD
     elif name == "food101":
         mean, std = FOOD101_MEAN, FOOD101_STD
+    elif name == "tiny_imagenet":
+        mean, std = TINY_IMAGENET_MEAN, TINY_IMAGENET_STD
     else:
         mean, std = CIFAR10_MEAN, CIFAR10_STD
     ops: list[Any] = []
-    if name in ("plantvillage", "food101"):
+    if name in ("plantvillage", "food101", "tiny_imagenet"):
         if train and augment:
             ops.extend([
                 transforms.RandomResizedCrop(32, scale=(0.7, 1.0)),
@@ -196,6 +236,43 @@ def build_datasets(
             else None
         )
         val_size = int(cfg.get("val_size", 7575))  # 10 % of 75 750
+        split_seed = int(cfg.get("split_seed", 42))
+        train_indices, val_indices = _train_val_indices(len(train_full), val_size, split_seed)
+        train = Subset(train_full, train_indices)
+        val = Subset(val_full, val_indices)
+    elif name == "tiny_imagenet":
+        # Accepts root pointing to the parent of tiny-imagenet-200/, or to
+        # tiny-imagenet-200/ itself.  Tries both before raising.
+        tiny_root = root
+        if not (tiny_root / "train").is_dir():
+            candidate = tiny_root / "tiny-imagenet-200"
+            if (candidate / "train").is_dir():
+                tiny_root = candidate
+        if not (tiny_root / "train").is_dir():
+            raise FileNotFoundError(
+                f"Tiny-ImageNet 'train/' not found under {root}. "
+                "Expected tiny-imagenet-200/train/ after extraction."
+            )
+        # Build wnid→index from wnids.txt (sorted alphabetically), matching
+        # the order that ImageFolder assigns when it reads the train directory.
+        wnids = sorted(
+            l.strip() for l in (tiny_root / "wnids.txt").read_text().splitlines() if l.strip()
+        )
+        wnid_to_idx = {w: i for i, w in enumerate(wnids)}
+        train_full = datasets.ImageFolder(
+            str(tiny_root / "train"),
+            transform=_transforms(name, True, augment, cfg),
+        )
+        val_full = datasets.ImageFolder(
+            str(tiny_root / "train"),
+            transform=_transforms(name, False, False, cfg),
+        )
+        # Official val set (labeled, 10k images) is used as the test split.
+        test = (
+            _TinyImageNetVal(tiny_root, wnid_to_idx, transform=_transforms(name, False, False, cfg))
+            if include_test else None
+        )
+        val_size = int(cfg.get("val_size", 10000))  # 10 % of 100 k train
         split_seed = int(cfg.get("split_seed", 42))
         train_indices, val_indices = _train_val_indices(len(train_full), val_size, split_seed)
         train = Subset(train_full, train_indices)
