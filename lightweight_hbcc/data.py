@@ -14,6 +14,8 @@ CIFAR100_MEAN = (0.5071, 0.4867, 0.4408)
 CIFAR100_STD = (0.2675, 0.2565, 0.2761)
 PLANTVILLAGE_MEAN = (0.485, 0.456, 0.406)
 PLANTVILLAGE_STD = (0.229, 0.224, 0.225)
+FOOD101_MEAN = (0.485, 0.456, 0.406)
+FOOD101_STD = (0.229, 0.224, 0.225)
 
 
 def num_classes_for_dataset(name: str) -> int:
@@ -24,6 +26,8 @@ def num_classes_for_dataset(name: str) -> int:
         return 100
     if name == "plantvillage":
         return 38
+    if name == "food101":
+        return 101
     if name == "fake":
         return 10
     raise ValueError(f"Unsupported dataset: {name}")
@@ -36,10 +40,12 @@ def _transforms(name: str, train: bool, augment: bool, cfg: dict[str, Any] | Non
         mean, std = CIFAR100_MEAN, CIFAR100_STD
     elif name == "plantvillage":
         mean, std = PLANTVILLAGE_MEAN, PLANTVILLAGE_STD
+    elif name == "food101":
+        mean, std = FOOD101_MEAN, FOOD101_STD
     else:
         mean, std = CIFAR10_MEAN, CIFAR10_STD
     ops: list[Any] = []
-    if name == "plantvillage":
+    if name in ("plantvillage", "food101"):
         if train and augment:
             ops.extend([
                 transforms.RandomResizedCrop(32, scale=(0.7, 1.0)),
@@ -164,6 +170,36 @@ def build_datasets(
             if include_test
             else None
         )
+    elif name == "food101":
+        # Official test split (250/class, manually reviewed) is used as test.
+        # Validation is carved from the train split (750/class) with a fixed seed.
+        train_full = datasets.Food101(
+            root=root,
+            split="train",
+            transform=_transforms(name, True, augment, cfg),
+            download=download,
+        )
+        val_full = datasets.Food101(
+            root=root,
+            split="train",
+            transform=_transforms(name, False, False, cfg),
+            download=download,
+        )
+        test = (
+            datasets.Food101(
+                root=root,
+                split="test",
+                transform=_transforms(name, False, False, cfg),
+                download=download,
+            )
+            if include_test
+            else None
+        )
+        val_size = int(cfg.get("val_size", 7575))  # 10 % of 75 750
+        split_seed = int(cfg.get("split_seed", 42))
+        train_indices, val_indices = _train_val_indices(len(train_full), val_size, split_seed)
+        train = Subset(train_full, train_indices)
+        val = Subset(val_full, val_indices)
     elif name == "fake":
         transform = _transforms("cifar10", False, False, cfg)
         train = datasets.FakeData(size=int(cfg.get("fake_train_size", 512)), image_size=(3, 32, 32), num_classes=10, transform=transform)
