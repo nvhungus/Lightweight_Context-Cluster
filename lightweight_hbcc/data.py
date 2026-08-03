@@ -241,8 +241,8 @@ def build_datasets(
         train = Subset(train_full, train_indices)
         val = Subset(val_full, val_indices)
     elif name == "tiny_imagenet":
-        # Accepts root pointing to the parent of tiny-imagenet-200/, or to
-        # tiny-imagenet-200/ itself.  Tries both before raising.
+        # Accepts root pointing to tiny-imagenet-200/ directly, or to its
+        # parent (in which case the tiny-imagenet-200/ subdirectory is used).
         tiny_root = root
         if not (tiny_root / "train").is_dir():
             candidate = tiny_root / "tiny-imagenet-200"
@@ -253,12 +253,9 @@ def build_datasets(
                 f"Tiny-ImageNet 'train/' not found under {root}. "
                 "Expected tiny-imagenet-200/train/ after extraction."
             )
-        # Build wnid→index from wnids.txt (sorted alphabetically), matching
-        # the order that ImageFolder assigns when it reads the train directory.
-        wnids = sorted(
-            l.strip() for l in (tiny_root / "wnids.txt").read_text().splitlines() if l.strip()
-        )
-        wnid_to_idx = {w: i for i, w in enumerate(wnids)}
+        # ImageFolder discovers classes by sorted directory listing; we build
+        # train_full first, then reuse its class_to_idx for _TinyImageNetVal
+        # so the label mapping is guaranteed to be identical.
         train_full = datasets.ImageFolder(
             str(tiny_root / "train"),
             transform=_transforms(name, True, augment, cfg),
@@ -267,9 +264,9 @@ def build_datasets(
             str(tiny_root / "train"),
             transform=_transforms(name, False, False, cfg),
         )
-        # Official val set (labeled, 10k images) is used as the test split.
+        # Official val set (labeled, 10 k images) is used as the test split.
         test = (
-            _TinyImageNetVal(tiny_root, wnid_to_idx, transform=_transforms(name, False, False, cfg))
+            _TinyImageNetVal(tiny_root, train_full.class_to_idx, transform=_transforms(name, False, False, cfg))
             if include_test else None
         )
         val_size = int(cfg.get("val_size", 10000))  # 10 % of 100 k train
