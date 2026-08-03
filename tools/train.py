@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from pathlib import Path
 import sys
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import numpy as np
 import torch
 
 from lightweight_hbcc.config import apply_overrides, load_config, save_config
@@ -41,6 +43,14 @@ def main() -> None:
     dataset_name = cfg.get("data", {}).get("name", "cifar10")
     cfg.setdefault("model", {})["num_classes"] = cfg["model"].get("num_classes", num_classes_for_dataset(dataset_name))
     train_cfg = cfg.get("train", {})
+    seed = train_cfg.get("seed")
+    if seed is not None:
+        seed = int(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        print(f"seed: {seed}", flush=True)
     skip_test = args.skip_test or bool(train_cfg.get("skip_test", False))
     device = resolve_device(args.device)
     output_dir = Path(args.output) / cfg.get("experiment", {}).get("name", Path(args.config).stem)
