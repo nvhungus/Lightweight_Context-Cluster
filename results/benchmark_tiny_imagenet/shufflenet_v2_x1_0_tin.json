@@ -1,0 +1,29 @@
+{
+  "model_name": "shufflenet_v2_x1_0_cifar",
+  "config_id": "shufflenet_v2_x1_0_tin",
+  "device": "cuda",
+  "device_name": "Tesla T4",
+  "torch_version": "2.10.0+cu128",
+  "cuda_version": "12.8",
+  "image_size": 32,
+  "params_total": 1458604,
+  "params_trainable": 1458604,
+  "model_size_mb": 5.62628173828125,
+  "macs": 46322816,
+  "flops": 46322816,
+  "unsupported_ops": {
+    "aten::mean": 1
+  },
+  "flop_error": null,
+  "bops": 0,
+  "latency_ms_b1": 6.038827979973576,
+  "throughput_b1": 165.87816040859315,
+  "latency_ms_b16": 6.856083499988017,
+  "throughput_b16": 2269.7080805923083,
+  "latency_ms_b64": 7.185575650000828,
+  "throughput_b64": 8941.102843238341,
+  "latency_ms_b128": 14.789218149999215,
+  "throughput_b128": 8636.880432216321,
+  "peak_memory_mb": 95.5751953125,
+  "operator_profile": "results/benchmark_tiny_imagenet/shufflenet_v2_x1_0_tin_profile.txt"
+}

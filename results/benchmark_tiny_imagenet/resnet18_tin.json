@@ -1,0 +1,29 @@
+{
+  "model_name": "resnet18_cifar",
+  "config_id": "resnet18_tin",
+  "device": "cuda",
+  "device_name": "Tesla T4",
+  "torch_version": "2.10.0+cu128",
+  "cuda_version": "12.8",
+  "image_size": 32,
+  "params_total": 11271432,
+  "params_trainable": 11271432,
+  "model_size_mb": 43.03387451171875,
+  "macs": 556756992,
+  "flops": 556756992,
+  "unsupported_ops": {
+    "aten::add_": 8
+  },
+  "flop_error": null,
+  "bops": 0,
+  "latency_ms_b1": 3.1292595700142556,
+  "throughput_b1": 521.7472333997654,
+  "latency_ms_b16": 6.014632619990152,
+  "throughput_b16": 2655.303058259092,
+  "latency_ms_b64": 17.283823849975306,
+  "throughput_b64": 3663.6083072518204,
+  "latency_ms_b128": 33.93988256000739,
+  "throughput_b128": 3693.451650170982,
+  "peak_memory_mb": 326.736328125,
+  "operator_profile": "results/benchmark_tiny_imagenet/resnet18_tin_profile.txt"
+}

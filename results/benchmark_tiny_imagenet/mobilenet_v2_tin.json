@@ -1,0 +1,30 @@
+{
+  "model_name": "mobilenet_v2_cifar",
+  "config_id": "mobilenet_v2_tin",
+  "device": "cuda",
+  "device_name": "Tesla T4",
+  "torch_version": "2.10.0+cu128",
+  "cuda_version": "12.8",
+  "image_size": 32,
+  "params_total": 2480072,
+  "params_trainable": 2480072,
+  "model_size_mb": 9.59124755859375,
+  "macs": 25799936,
+  "flops": 25799936,
+  "unsupported_ops": {
+    "aten::hardtanh_": 35,
+    "aten::add": 10
+  },
+  "flop_error": null,
+  "bops": 0,
+  "latency_ms_b1": 4.660815330025798,
+  "throughput_b1": 220.1476205151239,
+  "latency_ms_b16": 4.712418389972299,
+  "throughput_b16": 3511.220574988333,
+  "latency_ms_b64": 7.238908180006547,
+  "throughput_b64": 8868.642787445468,
+  "latency_ms_b128": 14.421876560008968,
+  "throughput_b128": 8871.560113638445,
+  "peak_memory_mb": 124.29345703125,
+  "operator_profile": "results/benchmark_tiny_imagenet/mobilenet_v2_tin_profile.txt"
+}

@@ -11,18 +11,19 @@
   "model_size_mb": 42.66205596923828,
   "macs": 556659712,
   "flops": 556659712,
-  "unsupported_ops": null,
+  "unsupported_ops": {
+    "aten::add_": 8
+  },
   "flop_error": null,
   "bops": 0,
-  "latency_ms_b1": 3.059295880011632,
-  "throughput_b1": 481.7724315290857,
-  "latency_ms_b16": 5.767535359991598,
-  "throughput_b16": 2841.279198784183,
-  "latency_ms_b64": 15.763442579991533,
-  "throughput_b64": 4054.5958297288744,
-  "latency_ms_b128": 30.243530250008916,
-  "throughput_b128": 4166.638903992815,
+  "latency_ms_b1": 3.0331084699719213,
+  "throughput_b1": 492.86917614980763,
+  "latency_ms_b16": 5.724860810005339,
+  "throughput_b16": 2840.4736390623507,
+  "latency_ms_b64": 15.961653720005415,
+  "throughput_b64": 4039.4189526103364,
+  "latency_ms_b128": 30.362569200005964,
+  "throughput_b128": 4217.3830953692395,
   "peak_memory_mb": 326.36474609375,
-  "operator_profile": "results/benchmark/resnet18_cifar_profile.txt",
-  "macs_note": "Backfilled post-hoc with fvcore on CPU (Kaggle env lacked fvcore at benchmark time); architecture-derived, independent of trained weights."
+  "operator_profile": "results/benchmark/resnet18_cifar_profile.txt"
 }
