@@ -39,9 +39,5 @@ kaggle/
 # Personal / institutional docs (not for public repo)
 docs/
 
-# Compiled PDFs (keep source .tex only)
-Report_LaTeX/*.pdf
-Report_LaTeX/en/*.pdf
-
-# IEEE conference templates (publicly available, not project-specific)
-Report_LaTeX/conference-template-*.docx
+# Paper writing — not part of the code repo
+Report_LaTeX/
