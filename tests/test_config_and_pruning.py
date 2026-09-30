@@ -31,7 +31,8 @@ def test_required_configs_exist() -> None:
         "configs/hbcc_latency_small.yaml",
         "configs/hbcc_current_reference.yaml",
         "configs/coc_cifar_baseline.yaml",
-        "configs/cifar100/resnet18_reference_cifar100.yaml",
-        "configs/cifar100/hbcc_small_light_aug_cifar100.yaml",
+        "configs/hbcc_accuracy_small.yaml",
+        "configs/hbcc_accuracy_medium.yaml",
+        "configs/run_plan.yaml",
     ]:
         assert Path(path).exists()

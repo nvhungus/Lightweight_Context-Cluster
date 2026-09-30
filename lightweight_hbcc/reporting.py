@@ -28,7 +28,7 @@ def load_records(paths: list[str | Path]) -> pd.DataFrame:
 def pareto_frontier(
     df: pd.DataFrame,
     acc_col: str = "acc1",
-    cost_cols: tuple[str, ...] = ("params_total", "latency_ms_b1", "peak_memory_mb"),
+    cost_cols: tuple[str, ...] = ("params_total", "latency_ms_b1", "peak_memory_mb_b1"),
 ) -> pd.DataFrame:
     if df.empty:
         return df

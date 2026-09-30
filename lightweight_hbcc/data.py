@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader, Subset
@@ -302,6 +304,14 @@ def build_datasets(
     return train, val, test
 
 
+def _seed_worker(worker_id: int) -> None:
+    """Seed Python/NumPy RNGs in each worker from the torch seed the DataLoader assigned it."""
+
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
 def build_loaders(cfg: dict[str, Any], include_test: bool = True) -> tuple[DataLoader, DataLoader, DataLoader | None]:
     train_set, val_set, test_set = build_datasets(cfg, include_test=include_test)
     batch_size = int(cfg.get("batch_size", 128))
@@ -309,6 +319,8 @@ def build_loaders(cfg: dict[str, Any], include_test: bool = True) -> tuple[DataL
     test_batch_size = int(cfg.get("test_batch_size", val_batch_size))
     workers = int(cfg.get("workers", 2))
     pin_memory = bool(cfg.get("pin_memory", True))
+    # Shuffle order and per-worker augmentation RNG both derive from loader_seed.
+    loader_seed = int(cfg.get("loader_seed", 0))
     train_loader = DataLoader(
         train_set,
         batch_size=batch_size,
@@ -316,6 +328,8 @@ def build_loaders(cfg: dict[str, Any], include_test: bool = True) -> tuple[DataL
         num_workers=workers,
         pin_memory=pin_memory,
         drop_last=bool(cfg.get("drop_last", True)),
+        generator=torch.Generator().manual_seed(loader_seed),
+        worker_init_fn=_seed_worker,
     )
     val_loader = DataLoader(
         val_set,
@@ -323,6 +337,8 @@ def build_loaders(cfg: dict[str, Any], include_test: bool = True) -> tuple[DataL
         shuffle=False,
         num_workers=workers,
         pin_memory=pin_memory,
+        generator=torch.Generator().manual_seed(loader_seed + 1),
+        worker_init_fn=_seed_worker,
     )
     test_loader = None
     if test_set is not None:
@@ -332,5 +348,7 @@ def build_loaders(cfg: dict[str, Any], include_test: bool = True) -> tuple[DataL
             shuffle=False,
             num_workers=workers,
             pin_memory=pin_memory,
+            generator=torch.Generator().manual_seed(loader_seed + 2),
+            worker_init_fn=_seed_worker,
         )
     return train_loader, val_loader, test_loader

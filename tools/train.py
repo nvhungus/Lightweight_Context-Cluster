@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
 import random
+import subprocess
 from pathlib import Path
 import sys
 import time
+from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -37,25 +40,84 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _git(*args: str) -> str | None:
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def _cpu_name() -> str:
+    cpuinfo = Path("/proc/cpuinfo")
+    if cpuinfo.exists():
+        for line in cpuinfo.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("model name"):
+                return line.split(":", 1)[1].strip()
+    return platform.processor() or platform.machine()
+
+
+def build_run_info(args: argparse.Namespace, cfg: dict, device: torch.device) -> dict:
+    """Provenance record written next to every run so each reported number is traceable."""
+
+    status = _git("status", "--porcelain")
+    return {
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "command": [sys.executable, *sys.argv],
+        "git_commit": _git("rev-parse", "HEAD"),
+        "git_dirty": bool(status) if status is not None else None,
+        "seed": cfg["train"]["seed"],
+        "loader_seed": cfg["data"]["loader_seed"],
+        "deterministic": cfg["train"]["deterministic"],
+        "epochs": int(cfg["train"].get("epochs", 200)),
+        "teacher_config": args.teacher_config,
+        "teacher_checkpoint": args.teacher_checkpoint,
+        "resume": args.resume,
+        "torch_version": torch.__version__,
+        "cuda_version": torch.version.cuda,
+        "cudnn_version": torch.backends.cudnn.version() if torch.backends.cudnn.is_available() else None,
+        "device": str(device),
+        "gpu_name": torch.cuda.get_device_name(device) if device.type == "cuda" else None,
+        "cpu_name": _cpu_name(),
+        "python_version": platform.python_version(),
+    }
+
+
 def main() -> None:
     args = parse_args()
     cfg = apply_overrides(load_config(args.config), args.override)
     dataset_name = cfg.get("data", {}).get("name", "cifar10")
     cfg.setdefault("model", {})["num_classes"] = cfg["model"].get("num_classes", num_classes_for_dataset(dataset_name))
-    train_cfg = cfg.get("train", {})
-    seed = train_cfg.get("seed")
-    if seed is not None:
-        seed = int(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        print(f"seed: {seed}", flush=True)
+    train_cfg = cfg.setdefault("train", {})
+    data_cfg = cfg.setdefault("data", {})
+    # Every run is seeded; the resolved seeds are saved in config.yaml and run_info.json.
+    seed = int(train_cfg.get("seed", 42))
+    deterministic = bool(train_cfg.get("deterministic", False))
+    train_cfg["seed"] = seed
+    train_cfg["deterministic"] = deterministic
+    data_cfg["loader_seed"] = int(data_cfg.get("loader_seed", seed))
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    print(f"seed: {seed} loader_seed={data_cfg['loader_seed']} deterministic={deterministic}", flush=True)
     skip_test = args.skip_test or bool(train_cfg.get("skip_test", False))
     device = resolve_device(args.device)
     output_dir = Path(args.output) / cfg.get("experiment", {}).get("name", Path(args.config).stem)
     output_dir.mkdir(parents=True, exist_ok=True)
     save_config(cfg, output_dir / "config.yaml")
+    run_info = build_run_info(args, cfg, device)
+    run_info_path = output_dir / "run_info.json"
+    run_info_path.write_text(json.dumps(run_info, indent=2), encoding="utf-8")
     metrics_path = output_dir / "metrics.jsonl"
     test_metrics_path = output_dir / "test_metrics.json"
     if not args.resume:
@@ -184,7 +246,7 @@ def main() -> None:
         if test_loader is None:
             raise RuntimeError("Final test evaluation was requested, but no test loader was created.")
         load_checkpoint(model, best_path, device, strict=True)
-        test_metrics = evaluate(
+        test_metrics, test_preds, test_targets = evaluate(
             model,
             test_loader,
             device,
@@ -192,7 +254,11 @@ def main() -> None:
             limit_batches=args.limit_test_batches,
             progress=not args.no_progress,
             prefix="test",
+            return_predictions=True,
         )
+        # Per-image predictions in test-set order enable paired tests (McNemar) between runs.
+        np.save(output_dir / "test_predictions.npy", test_preds)
+        np.save(output_dir / "test_targets.npy", test_targets)
         test_record = {"phase": "test", "epoch": best_epoch, "checkpoint": str(best_path.name), **test_metrics}
         write_metrics(test_record, metrics_path)
         with test_metrics_path.open("w", encoding="utf-8") as f:
@@ -207,6 +273,19 @@ def main() -> None:
             print(line)
         else:
             print(json.dumps(test_record, indent=2))
+
+    run_info.update(
+        {
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "completed_epochs": epochs,
+            "best_epoch": best_epoch,
+            "best_val_acc1": best_acc,
+            "limit_train_batches": args.limit_train_batches,
+            "limit_val_batches": args.limit_val_batches,
+            "limit_test_batches": args.limit_test_batches,
+        }
+    )
+    run_info_path.write_text(json.dumps(run_info, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

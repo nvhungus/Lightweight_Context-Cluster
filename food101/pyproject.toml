@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lightweight-hbcc"
+version = "0.1.0"
+description = "Reproducible HBCC/Context-Cluster experiments for CIFAR and Food-101."
+requires-python = ">=3.10"
+dependencies = [
+    "einops",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "torch",
+    "torchvision",
+    "tqdm",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lightweight_hbcc*"]

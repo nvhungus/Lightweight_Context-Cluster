@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from torch import nn
 from torch.amp import GradScaler, autocast
@@ -161,12 +162,17 @@ def evaluate(
     limit_batches: int | None = None,
     progress: bool = True,
     prefix: str = "val",
-) -> dict[str, float]:
+    return_predictions: bool = False,
+) -> dict[str, float] | tuple[dict[str, float], np.ndarray, np.ndarray]:
+    """Evaluate top-1/top-5; with ``return_predictions`` also return argmax predictions and targets in loader order."""
+
     model.eval()
     loss_fn = nn.CrossEntropyLoss()
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
     acc5_meter = AverageMeter()
+    all_preds: list[torch.Tensor] = []
+    all_targets: list[torch.Tensor] = []
     start = time.perf_counter()
     for step, (images, target) in enumerate(
         tqdm(
@@ -194,6 +200,9 @@ def evaluate(
             acc1 = accuracy(output, target, (1,))[0]
         loss_meter.update(loss.item(), images.size(0))
         acc_meter.update(acc1.item(), images.size(0))
+        if return_predictions:
+            all_preds.append(output.argmax(dim=1).cpu())
+            all_targets.append(target.cpu())
     metrics = {
         f"{prefix}_loss": loss_meter.avg,
         f"{prefix}_acc1": acc_meter.avg,
@@ -201,6 +210,10 @@ def evaluate(
     }
     if acc5_meter.count > 0:
         metrics[f"{prefix}_acc5"] = acc5_meter.avg
+    if return_predictions:
+        preds = torch.cat(all_preds).numpy() if all_preds else np.zeros(0, dtype=np.int64)
+        targets = torch.cat(all_targets).numpy() if all_targets else np.zeros(0, dtype=np.int64)
+        return metrics, preds, targets
     return metrics
 
 

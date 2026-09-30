@@ -69,6 +69,17 @@ def test_cifar100_uses_train_val_test_split(monkeypatch) -> None:
     assert set(train.indices).isdisjoint(set(val.indices))
 
 
+def test_train_loader_order_follows_loader_seed() -> None:
+    cfg = {"name": "fake", "fake_train_size": 64, "fake_val_size": 8, "batch_size": 8, "workers": 0}
+
+    def epoch_labels(seed: int) -> list[int]:
+        train_loader, _, _ = data.build_loaders({**cfg, "loader_seed": seed}, include_test=False)
+        return [label for _, labels in train_loader for label in labels.tolist()]
+
+    assert epoch_labels(5) == epoch_labels(5)
+    assert epoch_labels(5) != epoch_labels(6)
+
+
 def test_dataset_builder_can_skip_test_split() -> None:
     train, val, test = data.build_datasets(
         {"name": "fake", "fake_train_size": 8, "fake_val_size": 4},

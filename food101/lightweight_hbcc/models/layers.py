@@ -164,26 +164,6 @@ def channel_shuffle(x: torch.Tensor, groups: int = 2) -> torch.Tensor:
     return x.reshape(b, c, h, w)
 
 
-class ChannelGate(nn.Module):
-    """Differentiable structured channel mask used for pruning ablations."""
-
-    def __init__(self, channels: int, init_value: float = 4.0) -> None:
-        super().__init__()
-        self.logits = nn.Parameter(torch.full((channels,), float(init_value)))
-
-    def mask(self) -> torch.Tensor:
-        return torch.sigmoid(self.logits)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x * self.mask().view(1, -1, 1, 1)
-
-    def regularization(self, sparsity_weight: float, crispness_weight: float) -> torch.Tensor:
-        mask = self.mask()
-        sparsity = mask.mean()
-        crispness = (mask * (1.0 - mask)).mean()
-        return sparsity_weight * sparsity + crispness_weight * crispness
-
-
 def make_lbp_filters(channels: int, dtype: torch.dtype = torch.float32) -> torch.Tensor:
     filters = torch.zeros(8, 1, 3, 3, dtype=dtype)
     neighbors = [
@@ -219,13 +199,6 @@ class DWConvBranch(nn.Sequential):
         )
 
 
-class Conv3x3Branch(nn.Sequential):
-    """Learned full 3x3 convolution; the learned counterpart to the fixed LBP filters in ablations."""
-
-    def __init__(self, in_chans: int, out_chans: int, norm: str = "bn", act: str = "gelu") -> None:
-        super().__init__(ConvNormAct(in_chans, out_chans, 3, 1, 1, norm=norm, act=act))
-
-
 class LBPConvBranch(nn.Module):
     """Fixed sparse LBP-like filters followed by a pointwise projection."""
 
@@ -250,7 +223,6 @@ def make_local_branch(name: str, in_chans: int, out_chans: int, norm: str = "bn"
     factories: dict[str, Callable[[], nn.Module]] = {
         "identity": lambda: IdentityBranch(in_chans, out_chans),
         "dwconv": lambda: DWConvBranch(in_chans, out_chans, norm=norm, act=act),
-        "conv3x3": lambda: Conv3x3Branch(in_chans, out_chans, norm=norm, act=act),
         "lbpconv": lambda: LBPConvBranch(in_chans, out_chans, norm=norm, act=act),
     }
     if name not in factories:
