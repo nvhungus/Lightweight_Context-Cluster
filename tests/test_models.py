@@ -45,6 +45,7 @@ ABLATION_CONFIGS = [
     "configs/ablations/hbcc_medium_r4.yaml",
     "configs/ablations/hbcc_medium_r1.yaml",
     "configs/ablations/hbcc_medium_stem2.yaml",
+    "configs/ablations/hbcc_medium_alllocal.yaml",
 ]
 
 
@@ -63,7 +64,8 @@ def test_ablation_configs_change_exactly_one_model_field() -> None:
     for path in ABLATION_CONFIGS:
         cfg = load_config(path)
         changed = [k for k in base["model"] if cfg["model"].get(k) != base["model"][k]]
-        allowed = 4 if path.endswith("allcluster.yaml") else 1  # rho=0 turns off modes/branches/ratios/shuffle together
+        # Removing a whole branch (rho=0 or rho=1) changes modes/branches/ratios/shuffle together.
+        allowed = 4 if path.endswith(("allcluster.yaml", "alllocal.yaml")) else 1
         assert 1 <= len(changed) <= allowed, (path, changed)
         assert cfg["data"] == base["data"] and cfg["train"] == base["train"], path
 

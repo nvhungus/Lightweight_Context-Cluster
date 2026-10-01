@@ -57,14 +57,19 @@ def test_build_command_for_tin_kd_run() -> None:
 def test_deadline_defers_runs_that_cannot_finish(tmp_path) -> None:
     import subprocess
 
+    plan = run_queue.load_plan()
+    a1 = run_queue.estimated_hours(plan, plan["by_id"]["A1"])
+    b10 = run_queue.estimated_hours(plan, plan["by_id"]["B10"])
+    # A1 alone fits; B10 after A1 does not (the dry run accumulates A1's estimate).
+    deadline = run_queue.DEADLINE_MARGIN * a1 + 0.01
+    assert a1 + run_queue.DEADLINE_MARGIN * b10 > deadline
     result = subprocess.run(
         [sys.executable, str(ROOT / "tools" / "run_queue.py"), "--ids", "A1", "B10", "--dry-run",
-         "--output", str(tmp_path / "runs"), "--deadline-hours", "2.0"],
+         "--output", str(tmp_path / "runs"), "--deadline-hours", str(deadline)],
         cwd=ROOT, capture_output=True, text=True, check=True,
     )
-    # A1 needs 1.3 x 3.2 h > 2 h and is deferred; B10 needs 1.3 x 1.5 h = 1.95 h and fits.
-    assert "[defer] A1" in result.stdout
-    assert "[defer] B10" not in result.stdout and "=== B10" in result.stdout
+    assert "=== A1" in result.stdout and "[defer] A1" not in result.stdout
+    assert "[defer] B10" in result.stdout
     assert not (tmp_path / "runs").exists()  # dry runs never create the output directory
 
 
