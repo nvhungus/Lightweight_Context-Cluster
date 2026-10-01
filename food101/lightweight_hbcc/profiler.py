@@ -60,6 +60,7 @@ def _cuda_graph_latency(
     warmup: int,
     runs: int,
     repeats: int,
+    min_warmup_s: float = 1.0,
 ) -> dict[str, Any]:
     """Latency with the forward pass captured in a CUDA Graph (no per-kernel CPU launch overhead).
 
@@ -81,8 +82,15 @@ def _cuda_graph_latency(
     synchronize(device)
     max_abs_diff = float((static_out.float() - eager_out).abs().max().item())
     matches = bool(torch.allclose(static_out.float(), eager_out, rtol=1e-3, atol=1e-4))
-    for _ in range(warmup):
+    # A replay takes ~1 ms, so a fixed small replay count does not let GPU clocks settle:
+    # warm up for at least `min_warmup_s` seconds and `warmup` replays.
+    start = time.perf_counter()
+    replays = 0
+    while replays < warmup or time.perf_counter() - start < min_warmup_s:
         graph.replay()
+        replays += 1
+        if replays % 50 == 0:
+            synchronize(device)
     synchronize(device)
     reps = [_timed_ms(graph.replay, device, runs) for _ in range(repeats)]
     del graph, static_out
@@ -105,12 +113,18 @@ def benchmark_model(
     throughput_runs: int | None = None,
     repeats: int = 3,
     cuda_graph: bool = True,
+    graph_repeats: int = 5,
 ) -> dict[str, Any]:
     """Per-batch-size latency (eager and CUDA Graph), throughput and peak memory.
 
     Every metric is keyed by batch size. Peak memory is reset before each batch size, so
     ``peak_memory_mb_b1`` is the true batch-1 peak (weights + activations of one forward).
-    Latencies are the median over ``repeats`` timed loops of ``runs`` iterations each.
+    Latencies are the median over ``repeats`` (eager) or ``graph_repeats`` (CUDA Graph) timed
+    loops of ``runs`` iterations each.
+
+    All eager latency/memory/throughput measurements run first; CUDA Graphs are captured only
+    afterwards, because capture leaves cuBLAS workspaces allocated (~35 MB on a T4) that would
+    otherwise inflate the peak memory of every later batch size.
     """
 
     model.eval().to(device)
@@ -142,16 +156,20 @@ def benchmark_model(
         synchronize(device)
         stream_time = time.perf_counter() - start
         results[f"throughput_b{batch_size}"] = batch_size * throughput_runs / max(stream_time, 1e-12)
+        del x
 
-        if cuda_graph and device.type == "cuda":
+    if cuda_graph and device.type == "cuda":
+        for batch_size in batch_sizes:
+            x = torch.randn(batch_size, 3, image_size, image_size, device=device)
             try:
-                graph = _cuda_graph_latency(model, x, device, warmup, runs, repeats)
+                graph = _cuda_graph_latency(model, x, device, warmup, runs, graph_repeats)
                 results[f"latency_graph_ms_b{batch_size}"] = graph["latency_ms"]
                 results[f"latency_graph_ms_b{batch_size}_repeats"] = graph["latency_ms_repeats"]
                 results[f"graph_max_abs_diff_b{batch_size}"] = graph["max_abs_diff"]
                 results[f"graph_matches_eager_b{batch_size}"] = graph["matches_eager"]
             except Exception as exc:  # noqa: BLE001 - record and continue with the other batch sizes
                 results[f"graph_error_b{batch_size}"] = repr(exc)
+            del x
             torch.cuda.empty_cache()
     return results
 

@@ -39,7 +39,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-sizes", nargs="+", type=int, default=[1, 16, 64, 128])
     parser.add_argument("--warmup", type=int, default=30)
     parser.add_argument("--runs", type=int, default=100)
-    parser.add_argument("--repeats", type=int, default=3, help="Timed loops per batch size; the median is reported.")
+    parser.add_argument("--repeats", type=int, default=3, help="Eager timed loops per batch size; the median is reported.")
+    parser.add_argument("--graph-repeats", type=int, default=5, help="CUDA-Graph timed loops per batch size (median).")
     parser.add_argument("--cuda-graph", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--override", action="append", default=[])
@@ -77,6 +78,7 @@ def main() -> None:
             runs=args.runs,
             repeats=args.repeats,
             cuda_graph=args.cuda_graph,
+            graph_repeats=args.graph_repeats,
         )
     )
     if args.profile:

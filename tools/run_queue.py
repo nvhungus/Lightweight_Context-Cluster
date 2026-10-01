@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PLAN = ROOT / "configs" / "run_plan.yaml"
 SMOKE_OVERRIDES = ["train.epochs=1"]
 SMOKE_LIMITS = ["--limit-train-batches", "5", "--limit-val-batches", "2", "--limit-test-batches", "2"]
+DEADLINE_MARGIN = 1.3  # estimates are +-30%; never start a run that could hit the session limit
 
 
 @dataclass
@@ -192,6 +193,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true", help="Re-run even if test_metrics.json exists.")
     parser.add_argument("--dry-run", action="store_true", help="Print commands without running them.")
     parser.add_argument("--keep-going", action="store_true", help="Continue with the next ID if a run fails.")
+    parser.add_argument(
+        "--deadline-hours",
+        type=float,
+        help="Do not start a run unless elapsed + 1.3 x its estimate fits within this many hours "
+        "(e.g. 11.5 on Kaggle's 12 h sessions); such runs are reported as deferred.",
+    )
     return parser.parse_args()
 
 
@@ -229,6 +236,8 @@ def main() -> None:
         env["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     summary = []
+    queue_start = time.perf_counter()
+    simulated_hours = 0.0
     for run_id in args.ids:
         run = plan["by_id"][run_id]
         run_dir = output / run.experiment
@@ -236,6 +245,18 @@ def main() -> None:
             print(f"[skip] {run.id} {run.experiment}: test_metrics.json exists", flush=True)
             summary.append((run.id, run.experiment, "skipped", 0.0))
             continue
+        estimate = estimated_hours(plan, run)
+        if args.deadline_hours is not None and estimate is not None and not args.smoke:
+            # A dry run simulates the session: elapsed time = estimates of the runs scheduled before.
+            elapsed = simulated_hours if args.dry_run else (time.perf_counter() - queue_start) / 3600
+            if elapsed + DEADLINE_MARGIN * estimate > args.deadline_hours:
+                print(
+                    f"[defer] {run.id} {run.experiment}: {elapsed:.2f} h elapsed + {DEADLINE_MARGIN} x {estimate} h "
+                    f"estimate > {args.deadline_hours} h deadline; run it in the next session",
+                    flush=True,
+                )
+                summary.append((run.id, run.experiment, "deferred (time)", 0.0))
+                continue
         teacher_ckpt = None
         if run.kd_teacher:
             teacher = plan["by_id"][run.kd_teacher]
@@ -260,6 +281,7 @@ def main() -> None:
         )
         print(f"\n=== {run.id} {run.experiment} (est. {estimated_hours(plan, run)} h) ===", flush=True)
         print(" ".join(cmd), flush=True)
+        simulated_hours += estimate or 0.0
         if args.dry_run:
             summary.append((run.id, run.experiment, "dry-run", 0.0))
             continue
@@ -283,7 +305,7 @@ def main() -> None:
     print("\n=== queue summary ===")
     for run_id, experiment, status, hours in summary:
         print(f"{run_id:>4}  {experiment:42s} {status:16s} {hours:5.2f} h")
-    if any(status not in {"ok", "skipped", "dry-run"} for _, _, status, _ in summary):
+    if any(status not in {"ok", "skipped", "dry-run", "deferred (time)"} for _, _, status, _ in summary):
         raise SystemExit(1)
 
 

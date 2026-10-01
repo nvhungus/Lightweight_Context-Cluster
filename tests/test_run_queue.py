@@ -54,6 +54,20 @@ def test_build_command_for_tin_kd_run() -> None:
     assert "--limit-train-batches" in cmd
 
 
+def test_deadline_defers_runs_that_cannot_finish(tmp_path) -> None:
+    import subprocess
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "run_queue.py"), "--ids", "A1", "B10", "--dry-run",
+         "--output", str(tmp_path / "runs"), "--deadline-hours", "2.0"],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    )
+    # A1 needs 1.3 x 3.2 h > 2 h and is deferred; B10 needs 1.3 x 1.5 h = 1.95 h and fits.
+    assert "[defer] A1" in result.stdout
+    assert "[defer] B10" not in result.stdout and "=== B10" in result.stdout
+    assert not (tmp_path / "runs").exists()  # dry runs never create the output directory
+
+
 def test_teacher_lookup_searches_attached_inputs(tmp_path) -> None:
     plan = run_queue.load_plan()
     teacher = plan["by_id"]["A2"]
