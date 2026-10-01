@@ -36,9 +36,10 @@ kaggle/
 *.ilg
 *.ind
 
-# Personal / institutional docs (not for public repo); the experimental protocol is public
+# Personal / institutional docs (not for public repo); the protocol and plan are public
 docs/*
 !docs/protocol.md
+!docs/RESUBMISSION_PLAN.md
 
 # Paper writing — not part of the code repo
 Report_LaTeX/
