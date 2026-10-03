@@ -39,33 +39,54 @@ outcome. Every objection R2 raised turned out to be correct when checked against
 **Smoke test** (Kaggle T4): all 22 configurations train for one epoch on the real datasets, write
 every artifact, and find their teachers. Unit tests pass on Kaggle.
 
-**Tiny-ImageNet, seed 42, 100 epochs** (sessions A_s1 and B_s1, 8/8 runs clean, all on commit
-`72070fe`, identical test set and order):
+**Tiny-ImageNet, cross-entropy, 100 epochs** — 16 runs over four sessions (A_s1, B_s1, A_s2,
+B_s2), all clean, identical test set and order, all on code identical to commit `72070fe`.
+Test accuracy is recomputed from the saved per-image predictions (see the note on fp16 ties below).
 
-| Model | Params | Best val top-1 | Test top-1 |
-|---|---|---|---|
-| ResNet-18 | 11.27M | 58.70 | 58.81 |
-| **HBCC-Medium** | 1.80M | **56.43** | 56.18 |
-| ShuffleNetV2 | 1.46M | 55.98 | 55.85 |
-| **All-cluster Medium** (ρ=0) | 1.79M | **55.84** | 55.57 |
-| HBCC-Small | 1.32M | 55.27 | 55.32 |
-| HBCC-Medium, stem stride 2 | 1.80M | 50.68 | 50.80 |
-| CoC-baseline | 2.46M | 49.45 | 49.56 |
-| MobileNetV2 | 2.48M | 49.25 | 49.49 |
+| Model | Params | val s42 | val s43 | val s44 | **mean val** | **mean test** |
+|---|---|---|---|---|---|---|
+| ResNet-18 | 11.27M | 58.70 | 58.75 | — | **58.73** | 58.66 |
+| **HBCC-Medium** | 1.80M | 56.43 | 56.18 | 56.59 | **56.40** (sd 0.21) | 56.39 |
+| ShuffleNetV2 | 1.46M | 55.98 | 55.93 | — | **55.95** | 55.84 |
+| **All-cluster Medium** (ρ=0) | 1.79M | 55.84 | 55.70 | 55.44 | **55.66** (sd 0.20) | 56.00 |
+| HBCC-Small | 1.32M | 55.27 | — | — | 55.27 | 55.32 |
+| HBCC-Medium, **stem stride 2** | 1.80M | 50.68 | — | — | 50.68 | 50.80 |
+| CoC-baseline | 2.46M | 49.45 | — | — | 49.45 | 49.56 |
+| MobileNetV2 | 2.48M | 49.25 | — | — | 49.25 | 49.49 |
 
-Three findings that shape the revision:
+Stage-1 local-operator ablations, seed 42, against HBCC-Medium (LBPConv):
 
-1. **Stem stride is by far the largest effect measured so far**: stride 1 → stride 2 costs
-   **−5.75 pp**. This is the strongest support yet for the token-degeneracy / resolution rule.
+| Variant | Params | val | Δ val | test | Δ test | McNemar p |
+|---|---|---|---|---|---|---|
+| HBCC-Medium (LBPConv) | 1,804,626 | 56.43 | — | 56.18 | — | — |
+| **learned 3×3** | 1,802,834 | **56.74** | **+0.31** | **56.92** | **+0.74** | 0.053 |
+| **learned depthwise** | 1,794,994 | **56.71** | **+0.28** | 56.66 | **+0.48** | 0.210 |
+
+Four findings that shape the revision:
+
+1. **Stem stride is by far the largest effect measured**: stride 1 → stride 2 costs **−5.75 pp**
+   (McNemar p < 0.001). This is the strongest support for the token-degeneracy / resolution rule.
    (Caveat: stride 2 also cuts activations ~4×, so resolution and cluster occupancy *r* are
    confounded; the *r* sweep B8/B9 separates them at fixed resolution.)
-2. **The hybrid block's advantage over pure clustering is small**: Δ = +0.59 pp on validation at
-   seed 42 (McNemar on test p = 0.11, not significant). This is the **gate** — see §4.
-3. **HBCC-Small CE is behind ShuffleNetV2** (55.27 vs 55.98) at a similar parameter count. The
+2. **The hybrid block beats pure clustering, but by little**: mean Δ = +0.74 pp validation,
+   +0.39 pp test, positive in 3/3 seeds. The gate passes — see §4 — but the effect is roughly
+   **8× smaller than the stem-stride effect**.
+3. **LBPConv is not the best local operator.** Both learned alternatives beat it on both splits,
+   with slightly *fewer* parameters. See §3(c).
+4. **HBCC-Small CE is behind ShuffleNetV2** (55.27 vs 55.98) at a similar parameter count. The
    first submission claimed both HBCC CE models beat ShuffleNetV2; that no longer holds.
 
-Comparing the six re-run configurations against the first submission (same protocol, only the
-seeding code changed) gives a first estimate of run-to-run noise: roughly **0.3–0.5 pp**.
+**Run-to-run noise is now quantified**: seed-to-seed sd is ~0.20 pp for HBCC-Medium and
+all-cluster, and 0.04 pp for ResNet-18 and ShuffleNetV2. Re-running the first submission's
+configurations moved HBCC down ~0.3 pp and the baselines up ~0.2–0.7 pp — all within noise. The
+original single-seed numbers were a mildly favourable draw for HBCC.
+
+**fp16 tie-breaking (not a bug).** In four runs the reported `test_acc1` differs from the accuracy
+recomputed from the saved predictions by 0.01–0.04 pp (1–4 images of 10,000). Cause: `accuracy()`
+uses `topk` while the saved predictions use `argmax`, and under AMP the logits are fp16, where
+exact top-2 ties occur (~15 per 10,000 rows in fp16; none in fp32). Resolution: compute every
+reported test accuracy from the saved predictions, uniformly, so tables and paired tests agree.
+No code change; `tools/aggregate_seeds.py` does this when the tables are built.
 
 ### Cost measurements on T4 (partly done)
 
@@ -107,7 +128,9 @@ t-test across seeds and an exact McNemar test per seed on the shared test images
 CoC-baseline stay at one seed (6–9 pp behind). CIFAR-10 and Food-101 stay at one seed, stated as a
 limitation.
 
-**Covered by:** A2/A3/A12/B1/B2/A1 ✅ (seed 42) · A10–A14 ⏳ · A18–A22 ⏳ · `tools/aggregate_seeds.py` ✅
+**Covered by:** `tools/aggregate_seeds.py` ✅ · seed 42 complete ✅ · HBCC-Medium and all-cluster
+have all 3 seeds ✅ · ResNet-18 and ShuffleNetV2 have 2 of 3 (A18, A19 outstanding) ⬜ ·
+HBCC-Small has 1 of 3 (A12, A20 outstanding) ⬜ · all KD runs outstanding ⬜
 
 ### R1.2 — Clarify the "lightweight" claim and deployment capability
 
@@ -128,7 +151,7 @@ edge hardware.
 
 | Component | Ablation | ID | Status |
 |---|---|---|---|
-| Local branch | ρ=0 at HBCC's stem and depth | A1, A14, A22 | ✅ seed 42 · ⏳ seeds 43/44 |
+| Local branch | ρ=0 at HBCC's stem and depth | A1, A14, A22 | ✅ all 3 seeds |
 | **Clustering mechanism** | all-local (clustering removed) | **B22** | ⬜ — see §3(a) |
 | Fold partitioning | no fold (global clustering everywhere) | B6 | ⬜ |
 | Stem stride | stride 2 at equal depth | B10 | ✅ (−5.75 pp) |
@@ -180,8 +203,8 @@ teacher, temperature and α. Each KD student uses the ResNet-18 teacher of the *
 
 | Sub-point | Ablation | ID | Status |
 |---|---|---|---|
-| (a) clean ρ=0 | all-cluster at HBCC's stem/folds/depth (1.79M vs 1.80M params) | A1, A14, A22 | ✅ seed 42 · ⏳ |
-| (b) LBPConv vs learned | learned depthwise; learned full 3×3 | B3, B4 | ⏳ |
+| (a) clean ρ=0 | all-cluster at HBCC's stem/folds/depth (1.79M vs 1.80M params) | A1, A14, A22 | ✅ **all 3 seeds** — mean Δ +0.74 pp val |
+| (b) LBPConv vs learned | learned depthwise; learned full 3×3 | B3, B4 | ✅ seed 42 — **both beat LBPConv**, see §3(c) · ⏳ C1–C4 |
 | (c) channel shuffle | shuffle removed | B5 | ⬜ |
 
 The existing CoC-baseline is **reframed** in the text as a CoC-style reference configuration, not
@@ -304,6 +327,36 @@ widths, depths, stem, MLPs and recipe. 1.84M parameters / 157.7M MACs, against H
 
 **Status:** ⬜ both, writing only.
 
+### (c) LBPConv is not the best local operator — decision needed
+
+At seed 42, replacing the Stage-1 LBPConv with a **learned 3×3** gives +0.31 pp validation and
++0.74 pp test (McNemar p = 0.053) with slightly *fewer* parameters; a **learned depthwise** gives
++0.28 / +0.48. Both beat LBPConv on both splits.
+
+This matters because §III-F argued for LBPConv over a learned 3×3 on three grounds, and all three
+were already found false against the code (it *does* cost MACs — 7–8 % of the total; it *does*
+have learned weights — the 1×1 projection; and there is no "soft histogram", since the
+activations are not binary and the cluster centres never see the local branch's output within a
+block). Now the empirical justification is going too.
+
+What this does **not** change: the hybrid concept is still supported — every local variant beats
+all-cluster. What changes is the claim that *LBPConv specifically* is the right local operator.
+
+Options:
+
+1. **Report honestly, keep the model as evaluated.** Present LBPConv as a parameter-free texture
+   prior that performs *comparably* to learned alternatives, and drop any claim of superiority.
+   Cheap, defensible, and answers R2.2b directly.
+2. **Switch the main model to the learned 3×3.** Most accurate, but invalidates every HBCC run so
+   far — tens of GPU-hours. Not feasible before 15 November.
+3. **Get seeds 43/44 first** (runs C1–C4, ~9 h). Both variants are within 1.0 pp of the reference,
+   so the extra-seed rule in `docs/protocol.md` already requires them.
+
+**Recommendation: 3, then 1.** If the direction holds, write option 1; if the gap closes, LBPConv
+is simply "comparable", which is the same conclusion more comfortably.
+
+**Status:** ⚠️ C1–C4 queued; wording decision after they land.
+
 ---
 
 ## 4. The gate: which framing the paper takes
@@ -312,24 +365,50 @@ A single pre-registered comparison decides how the paper is framed. Δ = best va
 **HBCC-Medium CE** minus **all-cluster Medium CE**, on Tiny-ImageNet, per seed. The two models are
 budget-matched (1.80M vs 1.79M parameters; HBCC has ~10 % more MACs).
 
-| Seed | Δ (validation) |
-|---|---|
-| 42 | **+0.59** (test +0.61; McNemar p = 0.11) |
-| 43 | pending (A13 vs A14) |
-| 44 | pending (A21 vs A22) |
+| Seed | Δ validation | Δ test | McNemar p (test) |
+|---|---|---|---|
+| 42 | +0.59 | +0.61 | 0.110 |
+| 43 | +0.48 | +0.29 | 0.455 |
+| 44 | +1.15 | +0.27 | 0.499 |
+| **mean** | **+0.74** (sd 0.36) | **+0.39** (sd 0.19) | — |
 
-**Rule:** keep the hybrid-block framing only if **mean Δ ≥ 0.5 pp and Δ > 0 in all three seeds**;
-otherwise pivot to the design-analysis framing.
+**Rule:** keep the hybrid-block framing only if **mean Δ ≥ 0.5 pp and Δ > 0 in all three seeds**.
+Both conditions hold → **the hybrid block stays a contribution.**
 
-- **Hybrid-block framing** — the paper keeps HBCC as the contribution, now with a budget-matched
-  ablation behind it.
-- **Design-analysis framing** — the contribution becomes the cluster-occupancy design rule and the
-  stage-wise allocation study (the −5.75 pp stem-stride result is the lead), with the hybrid block
-  as one component among several. Working title: *"Token Degeneracy and Stage-wise Allocation in
-  Context-Cluster Classifiers"*.
+Three caveats to carry into the writing so the claim is stated at the right strength:
 
-The design-analysis framing is valid under either outcome, so drafting should start there. No
-scheduled run depends on the gate — nothing is wasted either way.
+- the test gain (+0.39) is smaller than the validation gain (+0.74);
+- **McNemar is not significant in any seed** (the ~1,400 discordant images split about 735/695);
+- a one-sample t-test on the three Δs gives **p = 0.07** — "consistently positive" is accurate,
+  "statistically significant" is not.
+
+Suggested wording: *"the local branch gives a small but consistent improvement over budget-matched
+pure clustering (+0.74 pp validation, +0.39 pp test, positive in 3/3 seeds, n = 3)."*
+
+### Recommended framing
+
+Passing the gate decides that the hybrid block **stays a contribution**. It does not decide what
+the paper leads with, and the evidence argues for the design analysis:
+
+| Finding | Effect | Support |
+|---|---|---|
+| **Stem stride / cluster occupancy** | **−5.75 pp** | McNemar p < 0.001 |
+| Hybrid vs pure clustering | +0.74 pp val | 3/3 seeds, t-test p = 0.07 |
+| HBCC vs ResNet-18 accuracy | **−2.33 pp** | consistent across seeds — HBCC loses |
+
+**Lead with the token-degeneracy / resolution analysis; keep the hybrid block as a supporting
+contribution; drop accuracy-versus-ResNet-18 as a headline.** Reasons: it is the largest and
+best-supported effect by a wide margin; it is the genuinely novel part (no prior work
+characterises when clustering degenerates on small inputs); it directly answers R1's "low
+novelty", which an incremental hybrid architecture does not; and it does not depend on beating
+ResNet-18, so it survives the accuracy gap.
+
+HBCC is retained as the architecture that embodies the rule. Working title: *"Token Degeneracy and
+Stage-wise Allocation in Context-Cluster Classifiers"*.
+
+**On ResNet-18, state the scope explicitly:** HBCC is not proposed as a more accurate model. At
+6.3× fewer parameters, 4.0× fewer MACs and 2.9× lower batch-1 memory it reaches 56.4 % against
+ResNet-18's 58.7 % on Tiny-ImageNet, while clearly outperforming CNNs of comparable size.
 
 ---
 
@@ -340,29 +419,33 @@ finish within 11. Measured Tiny-ImageNet run time is ~1.8–2.3 h per run regard
 training is CPU-bound (JPEG decode + RandAugment), so **4–5 runs per session**. Running two jobs on
 the two T4s at once does *not* help — they compete for the same 4 CPU cores.
 
-| Session | Runs | What it settles | Needs attached | ~Hours |
+**Done:** A_s1, B_s1 (seed 42 main table + stem stride), A_s2 (seed 43), B_s2 (seed 44 gate +
+LBPConv ablations). **16 of 47 non-conditional runs complete; ~79 GPU-hours remain**, plus ~9–13
+conditional.
+
+| # | Runs | What it settles | Needs attached | ~Hours |
 |---|---|---|---|---|
-| **A_s2** | A14, A13, A10, A11, A12 | Gate seed 43; seed-43 main table; seed-43 KD teacher | — | 10.2 |
-| **B_s2** | A22, A21, B3, B4 | Gate seed 44; LBPConv vs depthwise vs learned 3×3 | — | 8.9 |
-| **A_s3** | A7, A6, A8, A9 | KD seed 42, HBCC **and** baselines (R2.1, R2.4) | A_s1 output (teacher A2) | 8.8 |
-| **B_s3** | B22, B5, B6, B7 | Clustering mechanism; shuffle; fold; Stage 4 | — | 9.2 |
-| **A_s4** | A15, A16, A17, A18 | KD seed 43; seed-44 KD teacher | A_s2 output (teacher A10) | 9.0 |
-| **B_s4** | B8, B9, A19, A20 | *r* sweep (r = 4, r = 1); seed-44 baselines | — | 9.0 |
-| **A_s5** | A23, A24, A25 | KD seed 44 | A_s4 output (teacher A18) | 6.7 |
-| **CIFAR-10** | B11–B21, in 3–4 sessions | Replaces the whole CIFAR-10 table, which currently has no logs | the session that ran B11, for the KD runs | ~35 |
-| **C-runs** | subset of C1–C18 | Extra seeds for ablations within 1.0 pp of HBCC-Medium | — | ≤ 13 |
-| **M1 + M2** | — | Re-measure T4 cost at 32 px and 224 px | — | ~1 |
-| **T9** ⚠️ | Food-101 shared recipe | R1.4 / R2.5b — optional, first to cut | — | ~34 |
+| **1** | A7, A6, A8, A9 | **KD seed 42**, HBCC *and* baselines — R2's main reason to reject; also tests whether "student beats teacher" survives | **A_s1 output** (teacher A2) | 9 |
+| **2** | B11, B12, B13, B14 | **CIFAR-10 CE part 1** — the table that currently has no logs; B11 is also the CIFAR KD teacher | — | 10 |
+| **3** | C3, C4, C1, C2 | Seeds 43/44 for the learned-3×3 and depthwise ablations — settles §3(c) | — | 9 |
+| **4** | B15, B16, B17 | CIFAR-10 CE part 2: HBCC-S/M CE (R2.1) + all-cluster on a second dataset | — | 11 |
+| **5** | B22, B5, B6, B7 | Clustering mechanism; shuffle; fold; Stage 4 | — | 9 |
+| **6** | B8, B9, A18, A12 | ***r* sweep** (r = 4, r = 1) — now the paper's centrepiece; plus two missing seeds | — | 9 |
+| **7** | B18, B19, B20, B21 | CIFAR-10 KD, HBCC and baselines; replaces the unlogged 95.36 / 94.93 | the session that ran B11 | 13 |
+| **8** | A15–A17, then A23–A25 | KD seeds 43/44 | A_s2 output; then the session that ran A18 | 14 |
+| **9** | A19, A20 + M1/M2 benchmarks | Remaining seed-44 baselines; T4 cost re-measurement | — | 5 |
+| — | T9 ⚠️ | Food-101 shared recipe — optional, **first to cut** | — | ~34 |
 
-CIFAR-10 run times are **not measured yet**, so its sessions are deliberately left unpacked; the
-per-run time gets fixed after the first CIFAR session and the remaining sessions are packed then.
-The current placeholder estimates (2.5–4.0 h) are conservative; if CIFAR behaves like
-Tiny-ImageNet and is CPU-bound, every run will be ~2.5 h and the table fits in three sessions of
-four runs. Order B11 (the teacher) before the KD runs B18–B21.
+Sessions have been running ~15 % over estimate (A12 was correctly deferred by the guard when
+A_s2's runs overran), so **pack 4 runs per session, not 5**.
 
-Totals excluding T9: **~19 GPU-hours** for A_s2 + B_s2, then **~77** for everything after them,
-plus up to 13 conditional. At ~30 h per account per week, two accounts clear this in roughly two
-weeks; one account alone takes about three and a half.
+CIFAR-10 run times are **not measured yet**; the placeholders (2.5–4.0 h) are conservative. If
+CIFAR is CPU-bound like Tiny-ImageNet, every run will be ~2.5 h and the table fits in three
+sessions. Order B11 before the KD runs B18–B21.
+
+**Budget:** ~88 h including conditionals. At ~30 h per account per week that is ~3 weeks on one
+account (finishing ~24 October) or ~10 days on two. If only one account is available, cut T9
+definitively and consider dropping session 8 to a single KD seed, stated as a limitation.
 
 **Priority if quota is short:** the gate sessions (A_s2, B_s2) first, then the KD sessions (R2's
 main objection), then the ablations, then CIFAR-10, then the conditional seeds. T9 is cut first.
