@@ -69,14 +69,17 @@ est_hours:
     medium_r1: 2.3
     medium_stem2: 2.1
     alllocal_medium: 2.3
+  # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
+  # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
+  # from the measured CNN runs and are still provisional.
   cifar10:
-    resnet18: 2.5
-    mobilenet_v2: 2.5
-    shufflenet_v2: 2.5
-    coc: 2.8
-    hbcc_small: 3.6
-    hbcc_medium: 4.0
-    allcluster_medium: 3.6
+    resnet18: 1.4
+    mobilenet_v2: 1.5
+    shufflenet_v2: 1.6
+    coc: 2.1
+    hbcc_small: 2.5
+    hbcc_medium: 2.8
+    allcluster_medium: 2.5
 
 runs:
   # ---- Account A: decision gate + Tiny-ImageNet main table -----------------------------
