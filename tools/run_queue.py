@@ -113,7 +113,8 @@ def estimated_hours(plan: dict[str, Any], run: Run) -> float | None:
     hours = plan.get("est_hours", {}).get(run.dataset, {}).get(run.model)
     if hours is None:
         return None
-    return round(hours * (1.05 if run.kd_teacher else 1.0), 2)
+    overhead = float(plan.get("kd", {}).get("overhead", 1.05))
+    return round(hours * (overhead if run.kd_teacher else 1.0), 2)
 
 
 def find_teacher_checkpoint(teacher: Run, output: Path, search_dirs: list[Path]) -> Path | None:

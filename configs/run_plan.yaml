@@ -25,6 +25,8 @@ datasets:
 
 kd:
   teacher_config: configs/baselines/resnet18_cifar.yaml
+  # Measured over 5 Tiny-ImageNet KD runs: the frozen-teacher forward pass costs ~15%, not 5%.
+  overhead: 1.15
   overrides:
     - train.kd_alpha=0.5
     - train.kd_temperature=4.0
@@ -53,22 +55,22 @@ models:
 # CIFAR-10: not measured yet; conservative (CPU-bound floor ~2.5 h at 250 epochs) until the first session.
 est_hours:
   tin:
-    resnet18: 1.85
-    mobilenet_v2: 1.95
-    shufflenet_v2: 1.9
+    resnet18: 2.3
+    mobilenet_v2: 2.3
+    shufflenet_v2: 2.1
     coc: 2.3
-    hbcc_small: 2.2
-    hbcc_medium: 2.3
-    allcluster_medium: 2.0
-    medium_s1_dwconv: 2.3
-    medium_s1_conv3x3: 2.3
-    medium_noshuffle: 2.3
-    medium_nofold: 2.3
-    medium_s4_p2: 2.3
-    medium_r4: 2.3
-    medium_r1: 2.3
+    hbcc_small: 2.5
+    hbcc_medium: 2.6
+    allcluster_medium: 2.4
+    medium_s1_dwconv: 2.4
+    medium_s1_conv3x3: 2.4
+    medium_noshuffle: 2.4
+    medium_nofold: 2.4
+    medium_s4_p2: 2.4
+    medium_r4: 2.4
+    medium_r1: 2.4
     medium_stem2: 2.1
-    alllocal_medium: 2.3
+    alllocal_medium: 2.4
   # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
   # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
   # from the measured CNN runs and are still provisional.
