@@ -48,6 +48,7 @@ models:
   medium_r1: configs/ablations/hbcc_medium_r1.yaml
   medium_stem2: configs/ablations/hbcc_medium_stem2.yaml
   alllocal_medium: configs/ablations/hbcc_medium_alllocal.yaml
+  alllocal_macs_matched: configs/ablations/hbcc_medium_alllocal_macs_matched.yaml
 
 # Estimated T4 hours per CE run, used by run_queue --deadline-hours. KD runs add ~5%.
 # Tiny-ImageNet: measured in sessions A_s1/B_s1 (4 data workers). Runs are CPU-bound (JPEG decode +
@@ -71,6 +72,7 @@ est_hours:
     medium_r1: 2.4
     medium_stem2: 2.1
     alllocal_medium: 2.4
+    alllocal_macs_matched: 2.3
   # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
   # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
   # from the measured CNN runs and are still provisional.
@@ -134,6 +136,7 @@ runs:
   - {id: B20, dataset: cifar10, model: shufflenet_v2, seed: 42, kd_teacher: B11, answers: "R2.1 baseline KD"}
   - {id: B21, dataset: cifar10, model: mobilenet_v2, seed: 42, kd_teacher: B11, answers: "R2.1 baseline KD"}
   - {id: B22, dataset: tin, model: alllocal_medium, seed: 42, answers: "R1.3 clustering mechanism (no cluster branch)"}
+  - {id: B23, dataset: tin, model: alllocal_macs_matched, seed: 42, answers: "all-local at matched MACs (removes the compute confound in B22)"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
