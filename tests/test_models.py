@@ -70,6 +70,45 @@ def test_ablation_configs_change_exactly_one_model_field() -> None:
         assert cfg["data"] == base["data"] and cfg["train"] == base["train"], path
 
 
+DERIVED_CONFIGS = [
+    # Not one-change ablations of hbcc_accuracy_medium (they also rescale widths or swap the
+    # whole token mixer), so they are only checked for a correct forward pass.
+    "configs/ablations/hbcc_medium_alllocal_macs_matched.yaml",
+    "configs/ablations/hbcc_medium_alllocal_conv3x3.yaml",
+    "configs/baselines/shufflenet_v2_x1_5_cifar.yaml",
+]
+
+
+def test_derived_configs_forward_with_200_classes() -> None:
+    for path in DERIVED_CONFIGS:
+        cfg = load_config(path)
+        cfg["model"]["num_classes"] = 200
+        model = build_model(cfg).eval()
+        with torch.no_grad():
+            y = model(torch.randn(2, 3, 32, 32))
+        assert y.shape == (2, 200), path
+
+
+def test_alllocal_variants_contain_no_clustering() -> None:
+    from lightweight_hbcc.models.cluster import ContextClusterOp
+    for path in ["configs/ablations/hbcc_medium_alllocal.yaml",
+                 "configs/ablations/hbcc_medium_alllocal_macs_matched.yaml",
+                 "configs/ablations/hbcc_medium_alllocal_conv3x3.yaml"]:
+        model = build_model(load_config(path))
+        assert not any(isinstance(m, ContextClusterOp) for m in model.modules()), path
+
+
+def test_shufflenet_x1_5_is_wider_than_x1_0() -> None:
+    small = build_model(load_config("configs/baselines/shufflenet_v2_x1_0_cifar.yaml"))
+    wide = build_model(load_config("configs/baselines/shufflenet_v2_x1_5_cifar.yaml"))
+    n_small = sum(p.numel() for p in small.parameters())
+    n_wide = sum(p.numel() for p in wide.parameters())
+    assert n_wide > 1.5 * n_small, (n_small, n_wide)
+    # the CIFAR stem adjustment must be applied to both
+    assert wide.conv1[0].stride == (1, 1)
+    assert isinstance(wide.maxpool, torch.nn.Identity)
+
+
 def test_conv3x3_local_branch_is_learned_full_conv() -> None:
     branch = make_local_branch("conv3x3", 8, 8)
     conv = branch[0][0]

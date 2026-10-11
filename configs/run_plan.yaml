@@ -49,6 +49,8 @@ models:
   medium_stem2: configs/ablations/hbcc_medium_stem2.yaml
   alllocal_medium: configs/ablations/hbcc_medium_alllocal.yaml
   alllocal_macs_matched: configs/ablations/hbcc_medium_alllocal_macs_matched.yaml
+  alllocal_conv3x3: configs/ablations/hbcc_medium_alllocal_conv3x3.yaml
+  shufflenet_v2_x1_5: configs/baselines/shufflenet_v2_x1_5_cifar.yaml
 
 # Estimated T4 hours per CE run, used by run_queue --deadline-hours. KD runs add ~5%.
 # Tiny-ImageNet: measured in sessions A_s1/B_s1 (4 data workers). Runs are CPU-bound (JPEG decode +
@@ -73,6 +75,8 @@ est_hours:
     medium_stem2: 2.1
     alllocal_medium: 2.4
     alllocal_macs_matched: 2.3
+    alllocal_conv3x3: 2.3
+    shufflenet_v2_x1_5: 2.5
   # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
   # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
   # from the measured CNN runs and are still provisional.
@@ -84,6 +88,8 @@ est_hours:
     hbcc_small: 2.5
     hbcc_medium: 2.8
     allcluster_medium: 2.5
+    alllocal_macs_matched: 2.2
+    shufflenet_v2_x1_5: 1.8
 
 runs:
   # ---- Account A: decision gate + Tiny-ImageNet main table -----------------------------
@@ -137,6 +143,29 @@ runs:
   - {id: B21, dataset: cifar10, model: mobilenet_v2, seed: 42, kd_teacher: B11, answers: "R2.1 baseline KD"}
   - {id: B22, dataset: tin, model: alllocal_medium, seed: 42, answers: "R1.3 clustering mechanism (no cluster branch)"}
   - {id: B23, dataset: tin, model: alllocal_macs_matched, seed: 42, answers: "all-local at matched MACs (removes the compute confound in B22)"}
+
+  # ---- The proposed model: all-local at matched MACs, given KD and multiple seeds -------
+  # B23 (seed 42, CE) showed all-local beats the hybrid at matched compute with 10% fewer
+  # parameters. These runs give that model the same KD and 3-seed treatment the hybrid got,
+  # so it can be reported as the study's resulting design rather than a single ablation point.
+  - {id: B24, dataset: tin, model: alllocal_macs_matched, seed: 43, answers: "proposed model, seed 43 (CE)"}
+  - {id: B25, dataset: tin, model: alllocal_macs_matched, seed: 44, answers: "proposed model, seed 44 (CE)"}
+  - {id: B26, dataset: tin, model: alllocal_macs_matched, seed: 42, kd_teacher: A2, answers: "proposed model + KD, seed 42 - HEADLINE NUMBER"}
+  - {id: B27, dataset: tin, model: alllocal_macs_matched, seed: 43, kd_teacher: A10, answers: "proposed model + KD, seed 43"}
+  - {id: B28, dataset: tin, model: alllocal_macs_matched, seed: 44, kd_teacher: A18, answers: "proposed model + KD, seed 44"}
+
+  # ---- Compute-matched CNN reference (the risk run) -------------------------------------
+  # ShuffleNetV2-x1.0 uses ~46M MACs against the proposed model's ~139M, so it is not a
+  # like-for-like compute comparison. x1.5 (~106M MACs, ~2.7M params) is the closest
+  # available CNN at this budget. If it matches the proposed model, the margin is compute
+  # rather than architecture and the framing must fall back to parameter efficiency.
+  - {id: B29, dataset: tin, model: shufflenet_v2_x1_5, seed: 42, answers: "compute-matched CNN reference (CE) - RISK RUN"}
+  - {id: B30, dataset: tin, model: shufflenet_v2_x1_5, seed: 42, kd_teacher: A2, answers: "compute-matched CNN reference (KD) - RISK RUN"}
+
+  # ---- Second dataset and local-operator choice -----------------------------------------
+  - {id: B31, dataset: cifar10, model: alllocal_macs_matched, seed: 42, answers: "proposed model on CIFAR-10 (CE)"}
+  - {id: B32, dataset: cifar10, model: alllocal_macs_matched, seed: 42, kd_teacher: B11, answers: "proposed model on CIFAR-10 (KD)"}
+  - {id: B33, dataset: tin, model: alllocal_conv3x3, seed: 42, answers: "stage-1 learned 3x3 vs LBPConv, on the all-local model"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
