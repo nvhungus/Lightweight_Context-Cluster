@@ -219,6 +219,22 @@ class DWConvBranch(nn.Sequential):
         )
 
 
+class DWConv7Branch(nn.Sequential):
+    """Large-kernel (7x7) depthwise branch followed by a pointwise projection.
+
+    ConvNeXt-style: a 7x7 depthwise convolution costs 49/9 times the depthwise MACs of a 3x3
+    one, which is a small fraction of the block's total (the pointwise layers dominate), while
+    substantially enlarging the receptive field. Intended for the stride-1 stem schedule, where
+    stage-1 feature maps stay at full input resolution and a 3x3 kernel sees very little of them.
+    """
+
+    def __init__(self, in_chans: int, out_chans: int, norm: str = "bn", act: str = "gelu") -> None:
+        super().__init__(
+            ConvNormAct(in_chans, in_chans, 7, 1, 3, groups=in_chans, norm=norm, act=act),
+            ConvNormAct(in_chans, out_chans, 1, 1, 0, norm=norm, act=act),
+        )
+
+
 class Conv3x3Branch(nn.Sequential):
     """Learned full 3x3 convolution; the learned counterpart to the fixed LBP filters in ablations."""
 
@@ -250,6 +266,7 @@ def make_local_branch(name: str, in_chans: int, out_chans: int, norm: str = "bn"
     factories: dict[str, Callable[[], nn.Module]] = {
         "identity": lambda: IdentityBranch(in_chans, out_chans),
         "dwconv": lambda: DWConvBranch(in_chans, out_chans, norm=norm, act=act),
+        "dwconv7": lambda: DWConv7Branch(in_chans, out_chans, norm=norm, act=act),
         "conv3x3": lambda: Conv3x3Branch(in_chans, out_chans, norm=norm, act=act),
         "lbpconv": lambda: LBPConvBranch(in_chans, out_chans, norm=norm, act=act),
     }

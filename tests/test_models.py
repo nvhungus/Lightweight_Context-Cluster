@@ -76,7 +76,24 @@ DERIVED_CONFIGS = [
     "configs/ablations/hbcc_medium_alllocal_macs_matched.yaml",
     "configs/ablations/hbcc_medium_alllocal_conv3x3.yaml",
     "configs/baselines/shufflenet_v2_x1_5_cifar.yaml",
+    "configs/ablations/hbcc_alllocal_2_68m.yaml",
+    "configs/ablations/hbcc_alllocal_2_68m_dw7.yaml",
 ]
+
+
+def test_scaled_alllocal_is_near_shufflenet_x1_5_parameter_budget() -> None:
+    cfg = load_config("configs/ablations/hbcc_alllocal_2_68m.yaml")
+    cfg["model"]["num_classes"] = 200
+    n = sum(p.numel() for p in build_model(cfg).parameters())
+    assert 2.55e6 < n < 2.82e6, f"{n:,} is not close to ShuffleNetV2-x1.5's 2,683,624"
+
+
+def test_dwconv7_branch_uses_a_7x7_depthwise_kernel() -> None:
+    branch = make_local_branch("dwconv7", 16, 16)
+    depthwise = branch[0][0]
+    assert isinstance(depthwise, torch.nn.Conv2d)
+    assert depthwise.kernel_size == (7, 7) and depthwise.groups == 16
+    assert branch(torch.randn(1, 16, 8, 8)).shape == (1, 16, 8, 8)
 
 
 def test_derived_configs_forward_with_200_classes() -> None:

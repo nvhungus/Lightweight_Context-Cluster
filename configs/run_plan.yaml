@@ -51,6 +51,8 @@ models:
   alllocal_macs_matched: configs/ablations/hbcc_medium_alllocal_macs_matched.yaml
   alllocal_conv3x3: configs/ablations/hbcc_medium_alllocal_conv3x3.yaml
   alllocal_dkd: configs/ablations/hbcc_medium_alllocal_dkd.yaml
+  alllocal_2_68m: configs/ablations/hbcc_alllocal_2_68m.yaml
+  alllocal_2_68m_dw7: configs/ablations/hbcc_alllocal_2_68m_dw7.yaml
   shufflenet_v2_x1_5: configs/baselines/shufflenet_v2_x1_5_cifar.yaml
 
 # Estimated T4 hours per CE run, used by run_queue --deadline-hours. KD runs add ~5%.
@@ -78,6 +80,8 @@ est_hours:
     alllocal_macs_matched: 2.3
     alllocal_conv3x3: 2.3
     alllocal_dkd: 2.3
+    alllocal_2_68m: 2.8
+    alllocal_2_68m_dw7: 2.9
     shufflenet_v2_x1_5: 2.5
   # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
   # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
@@ -171,6 +175,17 @@ runs:
 
   # ---- Decoupled KD probe: does a stronger KD method lift the proposed model? ----------
   - {id: B34, dataset: tin, model: alllocal_dkd, seed: 42, kd_teacher: A2, answers: "DKD vs standard KD on the proposed model (decides the recipe framing)"}
+
+  # ---- Parameter-matched comparison against ShuffleNetV2-x1.5 (2.68M) ------------------
+  # All-local at 1.62M loses to x1.5 at 2.68M. These scale All-local to x1.5's parameter
+  # budget, which is the parameter-matched test that has never been run. Note the MACs gap
+  # widens (~230M vs 96.1M), so a win here is on parameters, not compute.
+  - {id: B35, dataset: tin, model: alllocal_2_68m, seed: 42, answers: "scaled All-local CE, param-matched to ShuffleNetV2-x1.5"}
+  - {id: B36, dataset: tin, model: alllocal_2_68m, seed: 42, kd_teacher: A2, answers: "scaled All-local KD - the headline attempt"}
+  - {id: B37, dataset: tin, model: alllocal_2_68m_dw7, seed: 42, answers: "scaled All-local with 7x7 depthwise, CE"}
+  - {id: B38, dataset: tin, model: alllocal_2_68m_dw7, seed: 42, kd_teacher: A2, answers: "scaled All-local with 7x7 depthwise, KD"}
+  - {id: B39, dataset: tin, model: shufflenet_v2_x1_5, seed: 43, answers: "x1.5 seed 43 - the scaling rate underpins the parameter claim"}
+  - {id: B40, dataset: tin, model: shufflenet_v2_x1_5, seed: 44, answers: "x1.5 seed 44"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
