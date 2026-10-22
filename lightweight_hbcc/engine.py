@@ -104,6 +104,9 @@ def train_one_epoch(
     model.train()
     if teacher is not None:
         teacher.eval()
+    # Only DKD uses this; standard KD ignores the epoch.
+    if hasattr(criterion, "set_epoch"):
+        criterion.set_epoch(epoch)
     scaler = GradScaler(device.type, enabled=amp and device.type == "cuda")
     loss_meter = AverageMeter()
     acc_meter = AverageMeter()
@@ -139,7 +142,8 @@ def train_one_epoch(
             teacher_logits = teacher(images) if teacher is not None else None
         with autocast(device_type=device.type, enabled=amp and device.type == "cuda"):
             output = model(images)
-            loss = criterion(output, target, teacher_logits)
+            # hard_target is the pre-MixUp/CutMix label; only DKD consumes it.
+            loss = criterion(output, target, teacher_logits, hard_target=hard_target)
             if pruning_regularization and hasattr(model, "pruning_regularization"):
                 loss = loss + model.pruning_regularization(*pruning_regularization)
         scaler.scale(loss).backward()

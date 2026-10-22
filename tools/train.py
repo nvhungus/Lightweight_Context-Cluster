@@ -169,7 +169,13 @@ def main() -> None:
         temperature=float(train_cfg.get("kd_temperature", 4.0)),
         alpha=float(train_cfg.get("kd_alpha", 0.0 if teacher is None else 0.5)),
         label_smoothing=float(train_cfg.get("label_smoothing", 0.0)),
+        method=str(train_cfg.get("kd_method", "standard")),
+        dkd_tckd_weight=float(train_cfg.get("dkd_tckd_weight", 1.0)),
+        dkd_nckd_weight=float(train_cfg.get("dkd_nckd_weight", 4.0)),
+        dkd_scale=float(train_cfg.get("dkd_scale", 1.0)),
+        dkd_warmup_epochs=int(train_cfg.get("dkd_warmup_epochs", 20)),
     )
+    print(f"train: distillation method={criterion.method}", flush=True)
     amp = bool(train_cfg.get("amp", True))
     pruning_reg = None
     if cfg.get("model", {}).get("pruning_mask"):
