@@ -146,9 +146,14 @@ def benchmark_model(
         results[f"latency_ms_b{batch_size}"] = statistics.median(reps)
         results[f"latency_ms_b{batch_size}_repeats"] = reps
         if device.type == "cuda":
-            results[f"peak_memory_mb_b{batch_size}"] = torch.cuda.max_memory_allocated(device) / (1024**2)
+            peak = torch.cuda.max_memory_allocated(device) / (1024**2)
+            results[f"peak_memory_mb_b{batch_size}"] = peak
+            # Peak includes the resident weights; activations are what actually scales with batch
+            # size, and at large batch they dominate. Report both so the two are not conflated.
+            results[f"activation_memory_mb_b{batch_size}"] = peak - results.get("weights_memory_mb", 0.0)
         else:
             results[f"peak_memory_mb_b{batch_size}"] = None
+            results[f"activation_memory_mb_b{batch_size}"] = None
 
         start = time.perf_counter()
         for _ in range(throughput_runs):
