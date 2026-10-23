@@ -98,6 +98,8 @@ est_hours:
     allcluster_medium: 2.5
     alllocal_macs_matched: 2.2
     shufflenet_v2_x1_5: 1.8
+    alllocal_2_68m_dw7: 2.8
+    alllocal_2_68m_conv3x3_dw7: 2.7
 
 runs:
   # ---- Account A: decision gate + Tiny-ImageNet main table -----------------------------
@@ -227,6 +229,24 @@ runs:
   - {id: B53, dataset: tin, model: alllocal_2_68m_conv3x3_dw7, seed: 43, kd_teacher: A10, conditional: true, answers: "conv3x3 headline KD seed 43 (only if B52 passes)"}
   - {id: B54, dataset: tin, model: alllocal_2_68m_conv3x3_dw7, seed: 44, kd_teacher: A18, conditional: true, answers: "conv3x3 headline KD seed 44 (only if B52 passes)"}
   - {id: B55, dataset: tin, model: alllocal_2_68m_conv3x3_dw7, seed: 42, conditional: true, answers: "conv3x3 headline CE seed 42 (only if B52 passes)"}
+
+  # ---- CIFAR-10 for the headline pair (closes a selective-reporting gap) --------------
+  # The master table covers nine models on CIFAR-10 but NONE of ShuffleNetV2-x1.5, the
+  # scaled models, or conv3x3. Publishing a CIFAR-10 table that omits the proposed model is
+  # the same objection R2 raised about favourable comparisons, so either these run or the
+  # CIFAR-10 table comes out of the paper.
+  # NOTE: CIFAR-10 is saturated here (ResNet-18 = 96.76, above every student we have), so
+  # this will NOT reproduce the beat-the-teacher result. The claim it supports is the
+  # parameter-matched one: proposed vs ShuffleNetV2-x1.5 at ~2.68M. Frame it that way.
+  # Teacher is B11 (cifar10_resnet18_ce_s42), trained on account B.
+  # B56/B57 are needed whichever architecture wins B52. B60/B61 apply only if B52 passes,
+  # so run B58/B59 vs B60/B61 AFTER B52 reports - not both.
+  - {id: B56, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 42, answers: "headline baseline on CIFAR-10 (CE)"}
+  - {id: B57, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 42, kd_teacher: B11, answers: "headline baseline on CIFAR-10 (KD)"}
+  - {id: B58, dataset: cifar10, model: alllocal_2_68m_dw7, seed: 42, answers: "proposed (LBPConv) on CIFAR-10 (CE) - only if B52 FAILS"}
+  - {id: B59, dataset: cifar10, model: alllocal_2_68m_dw7, seed: 42, kd_teacher: B11, answers: "proposed (LBPConv) on CIFAR-10 (KD) - only if B52 FAILS"}
+  - {id: B60, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 42, conditional: true, answers: "proposed (conv3x3) on CIFAR-10 (CE) - only if B52 PASSES"}
+  - {id: B61, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 42, kd_teacher: B11, conditional: true, answers: "proposed (conv3x3) on CIFAR-10 (KD) - only if B52 PASSES"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
