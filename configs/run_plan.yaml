@@ -243,8 +243,8 @@ runs:
   # so run B58/B59 vs B60/B61 AFTER B52 reports - not both.
   - {id: B56, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 42, answers: "headline baseline on CIFAR-10 (CE)"}
   - {id: B57, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 42, kd_teacher: B11, answers: "headline baseline on CIFAR-10 (KD)"}
-  - {id: B58, dataset: cifar10, model: alllocal_2_68m_dw7, seed: 42, answers: "proposed (LBPConv) on CIFAR-10 (CE) - only if B52 FAILS"}
-  - {id: B59, dataset: cifar10, model: alllocal_2_68m_dw7, seed: 42, kd_teacher: B11, answers: "proposed (LBPConv) on CIFAR-10 (KD) - only if B52 FAILS"}
+  - {id: B58, dataset: cifar10, model: alllocal_2_68m_dw7, seed: 42, answers: "LBPConv variant on CIFAR-10 (CE) - needed if B54 keeps LBPConv as the headline"}
+  - {id: B59, dataset: cifar10, model: alllocal_2_68m_dw7, seed: 42, kd_teacher: B11, answers: "LBPConv variant on CIFAR-10 (KD) - needed if B54 keeps LBPConv as the headline"}
   - {id: B60, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 42, conditional: true, answers: "proposed (conv3x3) on CIFAR-10 (CE) - only if B52 PASSES"}
   - {id: B61, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 42, kd_teacher: B11, conditional: true, answers: "proposed (conv3x3) on CIFAR-10 (KD) - only if B52 PASSES"}
 
@@ -266,10 +266,15 @@ runs:
   # p=0.0087) and +0.64 / +0.51 with CE (p=0.0138), and ties the ResNet-18 teacher
   # (-0.08 val, +0.15 test, p=0.432) at 4.25x fewer parameters. Every CIFAR-10 row is
   # still n=1, so these seeds are worth more than they were before Round 11.
-  - {id: B64, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 43, kd_teacher: B11, conditional: true, answers: "CIFAR-10 baseline KD seed 43"}
-  - {id: B65, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 44, kd_teacher: B11, conditional: true, answers: "CIFAR-10 baseline KD seed 44"}
-  - {id: B66, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 43, kd_teacher: B11, conditional: true, answers: "CIFAR-10 proposed KD seed 43"}
-  - {id: B67, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, kd_teacher: B11, conditional: true, answers: "CIFAR-10 proposed KD seed 44"}
+  # A KD student must use the ResNet-18 teacher of its OWN dataset AND seed (validated in
+  # run_queue.validate_plan). B11 is the CIFAR-10 teacher for seed 42 only, so CIFAR-10 at
+  # seeds 43/44 needs its own teachers first.
+  - {id: B68, dataset: cifar10, model: resnet18, seed: 43, conditional: true, answers: "CIFAR-10 teacher seed 43 (required by B64/B66)"}
+  - {id: B69, dataset: cifar10, model: resnet18, seed: 44, conditional: true, answers: "CIFAR-10 teacher seed 44 (required by B65/B67)"}
+  - {id: B64, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 43, kd_teacher: B68, conditional: true, answers: "CIFAR-10 baseline KD seed 43"}
+  - {id: B65, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 44, kd_teacher: B69, conditional: true, answers: "CIFAR-10 baseline KD seed 44"}
+  - {id: B66, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 43, kd_teacher: B68, conditional: true, answers: "CIFAR-10 proposed KD seed 43"}
+  - {id: B67, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, kd_teacher: B69, conditional: true, answers: "CIFAR-10 proposed KD seed 44"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
