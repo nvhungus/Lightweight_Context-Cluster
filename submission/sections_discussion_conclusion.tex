@@ -30,11 +30,27 @@ teacher, temperature and loss weight, the proposed model gains $2.52$ pp from
 distillation while ShuffleNetV2-x1.5 gains $1.50$ pp and ShuffleNetV2-x1.0
 gains $1.58$ pp. The obvious explanation, that a weaker model has more room to
 improve, predicts the opposite of what we observe: the proposed model has the
-higher cross-entropy accuracy and still gains more. We report the asymmetry
-because it is what produces the headline margin, and we decline to attribute
-a mechanism to it without a test. Establishing whether this is a property of
-the architecture, of the width, or of the $7\times7$ kernels would need a
-study of its own.
+higher cross-entropy accuracy and still gains more.
+
+Three candidate mechanisms are consistent with what we see and we can
+separate none of them with the runs we have. The proposed model may be more
+capacity-limited than parameter count suggests, so that the denser supervision
+in a softened label distribution buys it more than the one-hot signal does;
+this would predict that the gap narrows as the training budget grows, which we
+have not varied. The $7\times7$ depthwise kernels give it a wider effective
+receptive field than the baseline at the same depth, and a teacher's logits
+encode inter-class structure that may be easier to absorb with a wider spatial
+view; this would predict that the $3\times3$ variant of the same model gains
+less, which we did not measure because we ran only the final kernel size under
+distillation. Or the effect may be a property of width rather than
+architecture, in which case scaling the baseline further would reproduce it.
+Distinguishing these needs a grid over kernel size, width and training budget
+with distillation on and off --- roughly four times the compute this study
+used. We report the asymmetry because it is what produces the headline margin
+and a reader is entitled to know the margin depends on it; we decline to
+attribute a mechanism without the experiment that would test one. A reader who
+wants the architecture-only comparison should read the cross-entropy column,
+where the two models are within half a point of each other.
 
 \textbf{The accuracy is paid for in compute.} At matched parameters the
 proposed model performs $2.41\times$ the operations of ShuffleNetV2-x1.5,
@@ -42,8 +58,31 @@ occupies $3.12\times$ its peak memory at batch 128, and reaches $0.66\times$
 its throughput. It is cheaper than the teacher it beats on every static axis
 --- $4.16\times$ fewer parameters, $2.41\times$ fewer operations, $2.60\times$
 less memory at batch one --- but against the parameter-matched baseline the
-exchange is accuracy for compute, and a deployment limited by arithmetic
-rather than by model size should prefer the baseline.
+exchange is accuracy for compute.
+
+Where that arithmetic goes is not mysterious. A stride-1 stem keeps stage~1 at
+$32\times32$, so the first stage alone processes $1024$ positions at $78$
+channels, four times as many positions as a stride-2 design would, and the
+$7\times7$ depthwise kernels at later stages multiply the per-position cost
+again. The operations are the price of the two decisions the ablations
+selected, and they cannot be removed without giving back the accuracy those
+decisions bought. We also measured that the price is smaller in wall-clock
+terms than in operation counts: against the baseline the arithmetic ratio is
+$2.41\times$ but the graph-captured batch-one latency ratio is $1.07\times$,
+because the baseline's fragmented block spends most of its own batch-one time
+on kernel launches rather than arithmetic.
+
+This gives a usable decision rule rather than a blanket recommendation. A
+deployment bound by storage, update size or resident footprint --- a mobile
+application with a fixed size budget, a device with limited flash --- should
+prefer the proposed model, which is more accurate at the same parameter count
+and barely more expensive at batch one. A deployment bound by arithmetic or by
+batched throughput --- a server classifying large batches, a device whose
+accelerator is already saturated --- should prefer ShuffleNetV2-x1.5, which
+gives up a point and a half of accuracy for a third of the operations and half
+again the throughput. We state the rule in both directions because the
+parameter axis is the one we optimised and it would be misleading to present a
+model that loses on throughput as uniformly better.
 
 Two further limits constrain how far the numbers travel. Both datasets are
 evaluated at $32\times32$, which for Tiny-ImageNet means downsampling from the

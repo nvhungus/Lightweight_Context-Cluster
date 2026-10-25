@@ -44,6 +44,18 @@ uses the pairing that a $t$-test over seed means discards. We report both
 because they answer different questions, and we state $n$ wherever it is
 below three.
 
+\textbf{Counting operations.} Multiply--accumulate counts for the clustering
+branch are easy to understate, and the first version of this work did. An
+automatic counter sees the similarity matrix as a matrix product and counts
+it, but the aggregation and dispatch steps are element-wise multiplications
+followed by reductions, which most counters skip. For $N$ points, $M$ centres
+per fold tile and head dimension $d$, each of the three steps costs $NMd$ per
+head, so a counter that sees only the first reports a third of the branch's
+arithmetic. We instrument the clustering operation directly and add the two
+uncounted terms, which is why the operation counts we report for clustering
+models are higher than a naive profile would give. For the proposed model the
+correction is zero, since it contains no clustering.
+
 \textbf{Reproducibility.} Every run writes a provenance record containing the
 git commit, the seed, the resolved teacher checkpoint and the full software
 and hardware environment, together with its per-image test predictions. All
@@ -87,6 +99,32 @@ mechanism for this and do not propose one; we report it as an observation and
 leave it to future work. What the comparison does establish is that under a
 fixed, identical distillation protocol applied to every model, the proposed
 architecture is the more accurate one at a matched parameter budget.
+
+\textbf{A caveat about the MobileNetV2 row.} MobileNetV2 is the clear outlier
+in Table~\ref{tab:main}: at 2.48M parameters it reaches $49.25$ on
+Tiny-ImageNet, $6.53$ pp below a ShuffleNetV2-x1.0 that carries $41\%$ fewer
+parameters. The cause is resolution, and part of it is our own adaptation.
+Each of these networks was designed for $224\times224$ and reduces resolution
+$32\times$ end to end, which leaves a $1\times1$ map at $32\times32$ input, so
+all of them need their downsampling schedule shortened. For ResNet-18 and both
+ShuffleNetV2 widths we removed two reduction steps, setting the stem to
+stride~1 and replacing the max-pool with an identity, which leaves a
+$4\times4$ final feature map. MobileNetV2 has no max-pool to remove, and we
+changed only its stem stride; its four stride-2 inverted-residual stages
+survive untouched, so it still reduces resolution $16\times$ and finishes on a
+$2\times2$ map. Its operation count is the symptom: 25.8M MACs, the lowest in
+the table and $1.8\times$ below ShuffleNetV2-x1.0 despite $70\%$ more
+parameters. Most of its capacity sits in channels it can no longer resolve
+spatially.
+
+We report this because it means MobileNetV2 is a weaker baseline here than a
+more carefully adapted version would be, and the weakness flatters our
+results. It is also the reason we treat ShuffleNetV2-x1.5 rather than
+MobileNetV2 as the primary comparison throughout. Read charitably, the row is
+a second and independent instance of the effect that dominates
+Section~\ref{sec:ablation}: at $32\times32$ the decisive variable is how early
+a network discards spatial resolution, and a design that discards it twice
+over cannot be rescued by parameters.
 
 % Merged into one full-width float: the five-column single-column version
 % overflowed \columnwidth and collided with the CIFAR-10 table. Keeping both

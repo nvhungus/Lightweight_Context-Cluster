@@ -49,11 +49,15 @@
 \pagestyle{fancy}
 \renewcommand{\sectionmark}[1]{\markright{\MakeUppercase{#1}}{}}
 \renewcommand{\headrulewidth}{0pt}
+% FIX (option clash): the shipped template loads graphicx twice -- plain at the
+% top of this package list, then again here with [pdftex] / [dvips]. LaTeX
+% refuses the second load because the first requested no options, which is the
+% "Option clash for package graphicx" error. The driver options are redundant
+% anyway: modern graphicx detects pdfTeX automatically. Only the extension
+% declarations are kept, so nothing about how figures are found changes.
 \ifCLASSINFOpdf
-\usepackage[pdftex]{graphicx}
   \DeclareGraphicsExtensions{.pdf,.jpeg,.png,.jpg}
 \else
-\usepackage[dvips]{graphicx}
   \DeclareGraphicsExtensions{.eps}
 \fi
 \usepackage{array}
@@ -67,15 +71,14 @@
 \usepackage[font=footnotesize]{subfig}
 
 % ---------------------------------------------------------------------
-% CHANGE 1 of 4: conference year 2026 -> 2027 (appears 3x in this file).
-% CONFIRM the day/month and city with the organizers before submitting:
-% the shipped template says "Cần Thơ, 27-28/3/2026" and only the YEAR is
-% changed below. If FJCAI 2027 moves city or dates, edit those too.
+% CHANGE 1 of 4: conference string (appears 3x in this file). The shipped
+% template reads "Cần Thơ, 27-28/3/2026"; FJCAI 2027 is in Đà Nẵng on
+% 8-9 April 2027, so the city, dates and year are all updated.
 % ---------------------------------------------------------------------
 \makeatletter
 \def\ps@IEEEtitlepagestyle{%
-\def\@oddhead{\hfil \small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Cần Thơ, 27-28/3/2027}\hfil}%
-	\def\@evenhead{\hfil\small{\textit{Hội thảo khoa học quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Cần Thơ, 27-28/3/2027}\hfil}}%
+\def\@oddhead{\hfil \small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Đà Nẵng, 8-9/4/2027}\hfil}%
+	\def\@evenhead{\hfil\small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Đà Nẵng, 8-9/4/2027}\hfil}}%
 		\def\@oddfoot{\scriptsize \thepage \hfil }%
 		\def\@evenfoot{\scriptsize \hfil \thepage}
 	}
@@ -139,46 +142,59 @@
 \fontsize{9}{10}
 \selectfont
 
-\fancyhead[RE,LO]{\centering{\small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Cần Thơ, 27-28/3/2027}}}}
+\fancyhead[RE,LO]{\centering{\small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Đà Nẵng, 8-9/4/2027}}}}
 
 % ---------------------------------------------------------------------
 % CHANGE 2 of 4: title and authors
 % ---------------------------------------------------------------------
 \title{Do Context Clusters Help Lightweight Image Classification?\\ An Ablation Study and a Stronger All-Local Baseline}
 
-\author{\IEEEauthorblockN{Nguyen Viet Hung\IEEEauthorrefmark{1}, Nguyen Ba Nam\IEEEauthorrefmark{1}, Le Hoang Thai\IEEEauthorrefmark{1}}
-	\IEEEauthorblockA{\IEEEauthorrefmark{1}Faculty of Information Technology, University of Science, VNU-HCM, Vietnam}
-	\IEEEauthorblockA{Email: 23122032@student.hcmus.edu.vn, 23122043@student.hcmus.edu.vn, lhthai@fit.hcmus.edu.vn}
+% The corresponding author is marked with a star inside the author block rather
+% than with \thanks{}. This template replaces \@maketitle with its own
+% definition that typesets \@author in a plain tabular and never calls
+% \@thanks, so a \thanks footnote would be silently dropped.
+\author{\IEEEauthorblockN{Nguyen Viet Hung,
+        Nguyen Ba Nam,
+        Le Hoang Thai$^{\star}$}
+	\IEEEauthorblockA{Faculty of Information Technology\\
+	University of Science, VNU-HCM\\
+	Ho Chi Minh City, Vietnam\\
+	Email: 23122032@student.hcmus.edu.vn, 23122043@student.hcmus.edu.vn, lhthai@fit.hcmus.edu.vn}
+	\IEEEauthorblockA{$^{\star}$Corresponding author: lhthai@fit.hcmus.edu.vn}
 }
 
 \maketitle
 
 \begin{abstract}
 % The template warns against special characters, symbols or math here, so this
-% paragraph is deliberately plain text with no inline math.
-Lightweight image classification at low input resolution is usually limited by
-model size rather than by arithmetic throughput, which makes accuracy at a
-fixed parameter budget the operative figure of merit. We ask whether the
-Context Cluster token mixer, introduced for 5.3M-parameter models at 224 by
-224, keeps its benefit in that regime, and answer with single-change ablations
-under a matched training budget, three seeds per configuration and paired
-significance tests. It does not. Holding the stem, fold partitioning and block
-depth fixed and removing the local convolutional branch costs 0.74 points on
-Tiny-ImageNet, whereas removing the clustering branch instead gains 1.03
-points at 10 percent fewer parameters. A hand-designed sparse local filter is
-likewise matched by a plain learned 3 by 3 convolution while using 2.50 times
-less activation memory. Scaling the resulting all-local design to the
-parameter budget of ShuffleNetV2-x1.5, widening its depthwise kernels to 7 by
-7 and training it with logit distillation reaches 61.21 plus or minus 0.40
-top-1 on Tiny-ImageNet, against 59.72 plus or minus 0.14 for ShuffleNetV2-x1.5
-trained identically from the same teacher, and 58.76 plus or minus 0.06 for
-the ResNet-18 teacher itself, using 4.16 times fewer parameters and 2.41 times
-fewer operations than that teacher. On CIFAR-10 it leads ShuffleNetV2-x1.5 by
-0.82 points and matches the teacher at 4.25 times fewer parameters. The gain
-is conditional on distillation and costs 2.41 times the operations of the
-parameter-matched baseline; we report measured memory and latency in both
-eager and graph-captured execution, and show that operation counts mispredict
-measured latency by more than fourfold.
+% paragraph is deliberately plain prose: no math, no symbols, no figures.
+Clustering has been proposed as an alternative to attention and convolution for
+mixing visual tokens, and it performs competitively at the model sizes and
+input resolutions where it was introduced. Whether it survives compression is a
+separate question. Lightweight classifiers deployed at the edge are usually
+constrained by the memory their weights occupy rather than by the arithmetic
+the processor can retire, and at a few million parameters with small inputs
+each clustering stage sees few points to group. We test the mechanism directly
+in that regime. Starting from a hybrid block whose token mixer splits channels
+between a clustering branch and a local convolutional branch, we vary one
+design decision at a time under a matched training budget, repeat every
+configuration over several seeds, and compare with paired significance tests
+rather than single runs. Clustering does not pay for itself here. Removing the
+local branch while holding the stem, fold partitioning, depth and width fixed
+costs accuracy; removing the clustering branch instead improves it, at fewer
+parameters. The machinery built around clustering contributes less than
+run-to-run variation, and the one setting that matters greatly turns out to
+matter because of input resolution rather than because of grouping. A
+hand-designed sparse local filter is likewise matched by a plain learned
+convolution at equal parameters, while costing considerably more activation
+memory. Carrying these findings through yields a clustering-free design that,
+at the parameter budget of a strong lightweight baseline, exceeds both that
+baseline and the larger network used to distil it, on two datasets. The gain
+holds under distillation and is paid for in arithmetic, and we report measured
+memory and latency on real hardware alongside parameter counts, showing that
+operation counts are a poor predictor of measured speed for models of this
+kind. We release every configuration, seed and per-image prediction behind the
+results.
 \end{abstract}
 
 \begin{IEEEkeywords}

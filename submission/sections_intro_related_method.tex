@@ -15,6 +15,19 @@ the most accuracy? This paper answers it for low-resolution inputs by holding
 parameters fixed, training every model under the same budget, and measuring
 cost on real hardware instead of inferring it from operation counts.
 
+It is worth being precise about why parameters and not operations. A model
+shipped to a device occupies flash permanently, travels over the air on every
+update, and is resident in RAM for as long as it is loaded; all three scale
+with the parameter count and none with the operation count. Arithmetic, by
+contrast, is spent only while an inference is running, and on hardware with
+idle compute it is close to free. A phone that runs a classifier a few times a
+second has arithmetic to spare and a fixed app-size budget it cannot exceed.
+This is why the lightweight literature quotes parameters first, and why a
+comparison at matched parameters is the one that reflects the constraint that
+actually binds. We hold to that framing throughout, and we are explicit about
+what it costs us: at a matched parameter budget our design spends more
+arithmetic than the baseline it beats.
+
 Context Cluster \cite{coc} offers an unusual answer. Instead of attention or
 convolution it mixes tokens by clustering them, and it reports competitive
 accuracy at 5.3M parameters on $224\times224$ inputs. Its authors are explicit
@@ -25,6 +38,20 @@ clustering stage sees few points, and the fold partitioning that keeps
 clusters populated at high resolution has little left to partition. We treat
 this as an open empirical question about operating regime, not as a criticism
 of the original work.
+
+The question is under-tested for a structural reason. New token mixers are
+normally validated at the scale where they are proposed, and the lightweight
+regime is reached afterwards by shrinking a published design rather than by
+re-running the comparison that justified it. Shrinking changes the quantities
+a clustering mixer depends on. At $224\times224$ a stage-1 feature map holds
+thousands of points and a cluster can be populated generously; at $32\times32$
+with a stride-1 stem it holds $1024$, and by stage~4 only $16$, at which point
+a single centre covers the entire map and the operation is global pooling by
+another name. Depth compounds the effect: a lightweight model has a handful of
+blocks, so a mixer that needs several layers to propagate information across
+an image never gets them. Whether these shifts are fatal or merely
+inconvenient is not something one can read off the original paper, which is
+the gap this study fills.
 
 To answer it we build a hybrid block in which each stage splits its channels
 between a clustering branch and a local convolutional branch in ratio $\rho$,
@@ -90,15 +117,42 @@ and RepLKNet \cite{replknet} pushed the idea further and attributed the gain
 to effective receptive field rather than capacity. Our final design uses both
 observations.
 
+ShuffleNetV2 deserves more than a citation here, because two of its four
+design guidelines predict a result we measure. The third guideline warns that
+network fragmentation --- many small operations rather than few large ones ---
+reduces the degree of parallelism, and the fourth that element-wise operations
+are not negligible. ShuffleNetV2's own block is built from a channel split, a
+depthwise convolution, a concatenation and a shuffle, which is precisely the
+fragmented pattern those guidelines caution about, and the guidelines were
+derived from measurements on hardware of its era. On the GPU we measure,
+$87.5\%$ of its eager batch-one latency is CPU kernel-launch overhead, against
+$77.1\%$ for our model, and in eager execution it is the slower of the two
+despite performing a fraction of the arithmetic. Capturing the forward pass in
+a CUDA Graph removes the launch cost and reverses the ordering. The guidelines
+hold; what has changed is that the fragmentation penalty is now avoidable by a
+deployment choice rather than intrinsic to the architecture, which is an
+argument for reporting both execution modes rather than picking one.
+
 \textbf{Token mixers.} MetaFormer \cite{metaformer} separated the transformer
 block into a token mixer and a channel MLP and showed that the surrounding
-structure matters more than the mixer itself, which makes the mixer a clean
-unit of ablation. Context Cluster \cite{coc} substitutes a clustering
-operation: points are assigned to centres by similarity, aggregated, and
-dispatched back. Reported results are at 5.3M parameters and $224\times224$.
-We keep the MetaFormer skeleton fixed and vary only the mixer, which is what
-lets a single number be attributed to clustering rather than to the
-architecture around it.
+structure matters more than the mixer itself; replacing attention with average
+pooling cost surprisingly little. That claim has a consequence this paper
+leans on. If the skeleton carries most of the performance, then any comparison
+between two mixers is only meaningful when the skeleton either side of them is
+held identical, and a reported gap between two published networks with
+different stems, depths and widths tells us almost nothing about their mixers.
+It also raises the possibility that a mixer validated inside one skeleton
+contributes little inside another. Our study is a direct test of that
+possibility at small scale: we fix the skeleton --- the same stem, the same
+four stages, the same depths, the same channel MLP of ratio~3, the same
+LayerScale and stochastic depth --- and change nothing but the mixer and the
+width needed to hold parameters constant. Context Cluster \cite{coc}
+substitutes a clustering operation into that slot: points are assigned to
+centres by similarity, aggregated, and dispatched back, with fold partitioning
+limiting assignment to local tiles. Reported results are at 5.3M parameters and
+$224\times224$. Holding everything else fixed is what lets a single number be
+attributed to clustering rather than to the architecture around it, and it is
+what the comparison in the earlier version of this work lacked.
 
 \textbf{Knowledge distillation.} Hinton et al. \cite{hinton} match a student
 to a teacher's softened logits, and the technique is routine in lightweight
@@ -116,15 +170,40 @@ this paper, and report cross-entropy results alongside.
 \subsection{The hybrid block and its design space}
 
 Every model in this study is built from the same four-stage MetaFormer
-skeleton \cite{metaformer}. A block applies normalisation, a token mixer, a
-LayerScale parameter and a stochastic-depth path, adds the residual, and
-repeats the pattern with a channel MLP of ratio~3. Stages are separated by
-stride-2 point reducers that halve resolution and widen the channel count.
+skeleton \cite{metaformer}. Write $X \in \mathbb{R}^{C \times H \times W}$ for
+the input to a block. The block is
 
-The hybrid block parameterises the token mixer by a local ratio $\rho$. Given
-$C$ input channels it routes $\rho C$ to a local convolutional branch and
-$(1-\rho)C$ to a clustering branch, concatenates the two, and fuses them with
-a $1\times1$ convolution; an optional channel shuffle precedes the split. The
+\begin{equation}
+\label{eq:block1}
+Y = X + \gamma_1 \odot \mathcal{D}\big(\mathcal{T}(\mathrm{BN}(X))\big),
+\end{equation}
+\begin{equation}
+\label{eq:block2}
+Z = Y + \gamma_2 \odot \mathcal{D}\big(\mathcal{M}(\mathrm{BN}(Y))\big),
+\end{equation}
+
+where $\mathcal{T}$ is the token mixer, $\mathcal{M}$ a channel MLP of
+expansion ratio~3, $\mathcal{D}$ stochastic depth, and
+$\gamma_1, \gamma_2 \in \mathbb{R}^{C}$ are LayerScale vectors initialised at
+$10^{-5}$ and broadcast over space. Only $\mathcal{T}$ differs between the
+models we compare; everything else in \eqref{eq:block1}--\eqref{eq:block2} is
+held fixed, as are the stage depths $[1,1,2,1]$ and the stride-2 point
+reducers that separate stages.
+
+The hybrid block parameterises the token mixer by a local ratio
+$\rho \in [0,1]$. Splitting the channels as
+$C_\ell = \lfloor \rho C \rceil$ and $C_c = C - C_\ell$,
+
+\begin{equation}
+\label{eq:mixer}
+\mathcal{T}(X) = W_f \ast \big[\, \mathcal{C}(X_{1:C_c}) \;\Vert\;
+\mathcal{L}(X_{C_c+1:C}) \,\big],
+\end{equation}
+
+with $\Vert$ concatenation along channels, $\mathcal{C}$ the clustering
+branch, $\mathcal{L}$ the local branch, and $W_f$ a $1\times1$ fusion
+convolution that degenerates to the identity when either branch is empty; an
+optional channel shuffle precedes the split. The
 clustering branch follows \cite{coc}: the feature map is divided into fold
 tiles, centres are proposed within each tile, points are assigned to centres
 by cosine similarity, aggregated, and dispatched back. Occupancy $r$, the
@@ -156,6 +235,18 @@ the model: moving the stem to stride~2 costs $5.72$ pp
 $32\times32$ input there is little spatial information to discard, and
 discarding half of it at the first layer is not recoverable downstream.
 
+A stride-2 stem does two things at once, and the earlier version of this work
+credited the wrong one. It halves the resolution reaching every stage, and it
+also halves the number of points available to each cluster, which the hybrid
+model was designed to avoid. Our ablations bound the second effect. Driving
+occupancy to its degenerate limit directly, one point per centre at every
+stage, costs $1.02$ pp (Table~\ref{tab:ablation}); the occupancy change a
+stride-2 stem induces is milder than that. So at most roughly a fifth of the
+$5.72$ pp can be attributed to cluster occupancy and the remainder belongs to
+resolution. The practical reading is that the stem stride is not evidence for
+clustering: it is evidence that $32\times32$ inputs cannot afford early
+downsampling, which would be true of any architecture.
+
 Stage~1 mixes tokens with a learned $3\times3$ convolution. The hybrid model
 used fixed filters whose weights encode a sparse local binary pattern and
 which expand the channel count eightfold before a pointwise projection;
@@ -163,13 +254,38 @@ Section~\ref{sec:ablation} shows that a plain learned convolution matches them
 in accuracy at equal parameters while using $2.50\times$ less activation
 memory, so we use the learned convolution.
 
+The accounting behind that swap is worth stating, because the first version of
+this work reported it incorrectly. A fixed-filter branch applies a depthwise
+convolution that expands $C$ channels to $8C$, normalises, and projects back
+with a $1\times1$ convolution, costing $72C$ frozen weights, $16C$
+normalisation parameters and $8C^2 + 2C$ in the projection, or $8C^2 + 90C$ in
+total. A learned $3\times3$ convolution with batch normalisation costs
+$9C^2 + 2C$. The difference is $C(88 - C)$, which at the stage-1 width
+$C = 78$ of the final model is $780$ parameters in favour of the fixed filters
+--- $0.03\%$ of the network. The frozen weights are still weights and the
+expansion still performs multiply--accumulates, so the branch is not free on
+either axis, and the eightfold intermediate is what drives its activation
+memory.
+
 Stages~2 to~4 mix tokens with a $7\times7$ depthwise convolution followed by a
-$1\times1$ pointwise convolution. The wide kernel follows \cite{convnext}: with
-only five blocks in the entire network, depth cannot grow the effective
-receptive field, so each layer has to reach further, and a depthwise kernel
-costs $k^2$ per channel rather than $C_\text{in}C_\text{out}k^2$. Widening
-from $3\times3$ to $7\times7$ adds 35{,}600 parameters, 1.3\% of the model,
-and 2.5M operations.
+$1\times1$ pointwise convolution,
+
+\begin{equation}
+\label{eq:local}
+\mathcal{L}(X) = \sigma\big(\mathrm{BN}(W_p \ast
+  \sigma(\mathrm{BN}(W_d \circledast X)))\big),
+\end{equation}
+
+where $\circledast$ is depthwise convolution, $\ast$ is dense convolution and
+$\sigma$ is GELU. Separating the kernel this way costs
+$C_\text{in}k^2 + C_\text{in}C_\text{out}$ parameters against
+$C_\text{in}C_\text{out}k^2$ for a dense kernel, a ratio of
+$1/C_\text{out} + 1/k^2$; at $k = 7$ and the widths used here the pointwise
+term dominates, which is why enlarging $k$ is nearly free. The wide kernel
+follows \cite{convnext}: with only five blocks in the entire network, depth
+cannot grow the effective receptive field, so each layer has to reach further.
+Widening from $3\times3$ to $7\times7$ adds 35{,}600 parameters, $1.3\%$ of
+the model, and 2.5M operations, $1.1\%$.
 
 Channel widths are $[78, 116, 232, 310]$ with depths $[1, 1, 2, 1]$, giving
 2{,}707{,}416 parameters with a 200-class head. The widths were chosen to
