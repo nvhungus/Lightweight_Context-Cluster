@@ -117,21 +117,13 @@ and RepLKNet \cite{replknet} pushed the idea further and attributed the gain
 to effective receptive field rather than capacity. Our final design uses both
 observations.
 
-ShuffleNetV2 deserves more than a citation here, because two of its four
-design guidelines predict a result we measure. The third guideline warns that
-network fragmentation --- many small operations rather than few large ones ---
-reduces the degree of parallelism, and the fourth that element-wise operations
-are not negligible. ShuffleNetV2's own block is built from a channel split, a
-depthwise convolution, a concatenation and a shuffle, which is precisely the
-fragmented pattern those guidelines caution about, and the guidelines were
-derived from measurements on hardware of its era. On the GPU we measure,
-$87.5\%$ of its eager batch-one latency is CPU kernel-launch overhead, against
-$77.1\%$ for our model, and in eager execution it is the slower of the two
-despite performing a fraction of the arithmetic. Capturing the forward pass in
-a CUDA Graph removes the launch cost and reverses the ordering. The guidelines
-hold; what has changed is that the fragmentation penalty is now avoidable by a
-deployment choice rather than intrinsic to the architecture, which is an
-argument for reporting both execution modes rather than picking one.
+Two of ShuffleNetV2's four guidelines bear directly on what we measure:
+fragmentation into many small operations reduces parallelism, and element-wise
+operations are not negligible. Its own block --- channel split, depthwise
+convolution, concatenation, shuffle --- is exactly that pattern, and we find
+$87.5\%$ of its eager batch-one latency is kernel-launch overhead against
+$77.1\%$ for our model. Graph capture removes the penalty and reverses the
+ordering, which is why we report both execution modes.
 
 \textbf{Token mixers.} MetaFormer \cite{metaformer} separated the transformer
 block into a token mixer and a channel MLP and showed that the surrounding
@@ -142,17 +134,13 @@ between two mixers is only meaningful when the skeleton either side of them is
 held identical, and a reported gap between two published networks with
 different stems, depths and widths tells us almost nothing about their mixers.
 It also raises the possibility that a mixer validated inside one skeleton
-contributes little inside another. Our study is a direct test of that
-possibility at small scale: we fix the skeleton --- the same stem, the same
-four stages, the same depths, the same channel MLP of ratio~3, the same
-LayerScale and stochastic depth --- and change nothing but the mixer and the
-width needed to hold parameters constant. Context Cluster \cite{coc}
-substitutes a clustering operation into that slot: points are assigned to
-centres by similarity, aggregated, and dispatched back, with fold partitioning
-limiting assignment to local tiles. Reported results are at 5.3M parameters and
-$224\times224$. Holding everything else fixed is what lets a single number be
-attributed to clustering rather than to the architecture around it, and it is
-what the comparison in the earlier version of this work lacked.
+contributes little inside another, which is what we test here. Context Cluster
+\cite{coc} substitutes a clustering operation into that slot: points are
+assigned to centres by similarity, aggregated, and dispatched back, with fold
+partitioning limiting assignment to local tiles. Reported results are at 5.3M
+parameters and $224\times224$. Holding the rest of the skeleton fixed is what
+lets a single number be attributed to clustering rather than to the
+architecture around it.
 
 \textbf{Knowledge distillation.} Hinton et al. \cite{hinton} match a student
 to a teacher's softened logits, and the technique is routine in lightweight

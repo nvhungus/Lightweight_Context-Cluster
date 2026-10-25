@@ -137,8 +137,9 @@ over cannot be rescued by parameters.
 deviation over $n$ seeds. Tiny-ImageNet: 100 epochs, $n$ as shown. CIFAR-10:
 250 epochs, single seed. Every distilled student uses the same ResNet-18
 teacher trained on the same dataset and seed, with $\alpha = 0.5$ and $T = 4$.
-Parameters and MACs are for the 200-class head; the CIFAR-10 variants differ
-only in the classifier.}}
+ResNet-18 is that teacher, so it is trained with cross-entropy only and has no
+KD entry. Parameters and MACs are for the 200-class head; the CIFAR-10
+variants differ only in the classifier.}}
 \label{tab:main}
 \centering
 \footnotesize

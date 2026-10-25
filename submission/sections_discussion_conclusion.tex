@@ -32,25 +32,17 @@ gains $1.58$ pp. The obvious explanation, that a weaker model has more room to
 improve, predicts the opposite of what we observe: the proposed model has the
 higher cross-entropy accuracy and still gains more.
 
-Three candidate mechanisms are consistent with what we see and we can
-separate none of them with the runs we have. The proposed model may be more
-capacity-limited than parameter count suggests, so that the denser supervision
-in a softened label distribution buys it more than the one-hot signal does;
-this would predict that the gap narrows as the training budget grows, which we
-have not varied. The $7\times7$ depthwise kernels give it a wider effective
-receptive field than the baseline at the same depth, and a teacher's logits
-encode inter-class structure that may be easier to absorb with a wider spatial
-view; this would predict that the $3\times3$ variant of the same model gains
-less, which we did not measure because we ran only the final kernel size under
-distillation. Or the effect may be a property of width rather than
-architecture, in which case scaling the baseline further would reproduce it.
-Distinguishing these needs a grid over kernel size, width and training budget
-with distillation on and off --- roughly four times the compute this study
-used. We report the asymmetry because it is what produces the headline margin
-and a reader is entitled to know the margin depends on it; we decline to
-attribute a mechanism without the experiment that would test one. A reader who
-wants the architecture-only comparison should read the cross-entropy column,
-where the two models are within half a point of each other.
+Three mechanisms are consistent with what we see and the runs we have separate
+none of them. The model may be more capacity-limited than its parameter count
+suggests, so that denser supervision buys it more. Its $7\times7$ kernels may
+make the inter-class structure in a teacher's logits easier to absorb than the
+baseline's narrower receptive field allows. Or the effect may belong to width
+rather than to architecture. Separating them needs a grid over kernel size,
+width and training budget with distillation on and off, several times the
+compute spent here. We report the asymmetry because the headline margin
+depends on it, and decline to name a mechanism without the experiment that
+would test one; a reader who wants the architecture-only comparison should read
+the cross-entropy column, where the two models are within half a point.
 
 \textbf{The accuracy is paid for in compute.} At matched parameters the
 proposed model performs $2.41\times$ the operations of ShuffleNetV2-x1.5,
