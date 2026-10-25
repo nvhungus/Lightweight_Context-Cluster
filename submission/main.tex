@@ -70,6 +70,12 @@
 }
 \usepackage[font=footnotesize]{subfig}
 
+% \url is not provided by the shipped template. The url package gives correct
+% typesetting and line breaking for the repository address in Section IV-A
+% without hyperref, which would also have to patch this template's custom
+% \@maketitle and its Vietnamese running head.
+\usepackage{url}
+
 % ---------------------------------------------------------------------
 % CHANGE 1 of 4: conference string (appears 3x in this file). The shipped
 % template reads "Cần Thơ, 27-28/3/2026"; FJCAI 2027 is in Đà Nẵng on
