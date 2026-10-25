@@ -43,3 +43,6 @@ docs/*
 
 # Paper writing — not part of the code repo
 Report_LaTeX/
+
+# Conference template extracted locally; not part of the code repo
+fjcai_template_extract/
