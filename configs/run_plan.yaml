@@ -22,6 +22,16 @@ datasets:
       - data.name=cifar10
       - data.root={cifar_root}
       - model.num_classes=10
+  # CIFAR-100 is already implemented in lightweight_hbcc/data.py (normalisation
+  # constants, transforms and torchvision auto-download). It was missing only
+  # from this plan, so run_queue could not schedule it. Same resolution, same
+  # 50k training images and same epoch budget as CIFAR-10; only the head differs.
+  cifar100:
+    epochs: 250
+    overrides:
+      - data.name=cifar100
+      - data.root={cifar_root}
+      - model.num_classes=100
 
 kd:
   teacher_config: configs/baselines/resnet18_cifar.yaml
@@ -93,6 +103,19 @@ est_hours:
     mobilenet_v2: 1.5
     shufflenet_v2: 1.6
     coc: 2.1
+    hbcc_small: 2.5
+    hbcc_medium: 2.8
+    allcluster_medium: 2.5
+    alllocal_macs_matched: 2.2
+    shufflenet_v2_x1_5: 1.8
+    alllocal_2_68m_dw7: 2.8
+    alllocal_2_68m_conv3x3_dw7: 2.7
+
+  # Same per-epoch cost as CIFAR-10: identical resolution, identical train size.
+  cifar100:
+    resnet18: 1.4
+    mobilenet_v2: 1.5
+    shufflenet_v2: 1.6
     hbcc_small: 2.5
     hbcc_medium: 2.8
     allcluster_medium: 2.5
@@ -281,6 +304,39 @@ runs:
   - {id: B71, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 44, conditional: true, answers: "CIFAR-10 baseline CE seed 44"}
   - {id: B72, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 43, conditional: true, answers: "CIFAR-10 proposed CE seed 43"}
   - {id: B73, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-10 proposed CE seed 44"}
+
+  # ---- D series: CIFAR-100, a third dataset ------------------------------------------
+  # NOT part of the FJCAI submission, which is fixed at eight pages. This block exists so
+  # the clustering ablation and the headline comparison can be repeated on a third dataset
+  # as a separate piece of work.
+  # Run order matters: D1 trains the teacher that D3 and D5 consume, and
+  # find_teacher_checkpoint looks in the session's own output before --search-dir, so the
+  # teacher must precede its students in the same session.
+  #   session 1: D1 D3 D5   6.57 h   teacher, then both KD runs
+  #   session 2: D2 D4      4.50 h   both CE runs, no teacher needed
+  - {id: D1, dataset: cifar100, model: resnet18, seed: 42, answers: "CIFAR-100 teacher"}
+  - {id: D2, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 42, answers: "CIFAR-100 baseline CE"}
+  - {id: D3, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 42, kd_teacher: D1, answers: "CIFAR-100 baseline KD"}
+  - {id: D4, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 42, answers: "CIFAR-100 proposed CE"}
+  - {id: D5, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 42, kd_teacher: D1, answers: "CIFAR-100 proposed KD"}
+
+  # The clustering ablation repeated on CIFAR-100: does the negative result hold on a
+  # third dataset? These three are the rho sweep at fixed stem, folds, depth and width.
+  - {id: D6, dataset: cifar100, model: hbcc_medium, seed: 42, answers: "CIFAR-100 hybrid rho=0.5"}
+  - {id: D7, dataset: cifar100, model: allcluster_medium, seed: 42, answers: "CIFAR-100 rho=0, clustering only"}
+  - {id: D8, dataset: cifar100, model: alllocal_macs_matched, seed: 42, answers: "CIFAR-100 rho=1, local only"}
+
+  # Seeds 43 and 44, once the seed-42 picture is known.
+  - {id: D9,  dataset: cifar100, model: resnet18, seed: 43, conditional: true, answers: "CIFAR-100 teacher seed 43"}
+  - {id: D10, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 43, kd_teacher: D9, conditional: true, answers: "CIFAR-100 baseline KD seed 43"}
+  - {id: D11, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 43, kd_teacher: D9, conditional: true, answers: "CIFAR-100 proposed KD seed 43"}
+  - {id: D12, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 43, conditional: true, answers: "CIFAR-100 baseline CE seed 43"}
+  - {id: D13, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 43, conditional: true, answers: "CIFAR-100 proposed CE seed 43"}
+  - {id: D14, dataset: cifar100, model: resnet18, seed: 44, conditional: true, answers: "CIFAR-100 teacher seed 44"}
+  - {id: D15, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 44, kd_teacher: D14, conditional: true, answers: "CIFAR-100 baseline KD seed 44"}
+  - {id: D16, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 44, kd_teacher: D14, conditional: true, answers: "CIFAR-100 proposed KD seed 44"}
+  - {id: D17, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 44, conditional: true, answers: "CIFAR-100 baseline CE seed 44"}
+  - {id: D18, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-100 proposed CE seed 44"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
