@@ -275,6 +275,12 @@ runs:
   - {id: B65, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 44, kd_teacher: B69, conditional: true, answers: "CIFAR-10 baseline KD seed 44"}
   - {id: B66, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 43, kd_teacher: B68, conditional: true, answers: "CIFAR-10 proposed KD seed 43"}
   - {id: B67, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, kd_teacher: B69, conditional: true, answers: "CIFAR-10 proposed KD seed 44"}
+  # The CE half of the same grid. Without these the CIFAR-10 CE column stays at
+  # n=1 while the KD column reaches n=3, which is worse than leaving both at n=1.
+  - {id: B70, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 43, conditional: true, answers: "CIFAR-10 baseline CE seed 43"}
+  - {id: B71, dataset: cifar10, model: shufflenet_v2_x1_5, seed: 44, conditional: true, answers: "CIFAR-10 baseline CE seed 44"}
+  - {id: B72, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 43, conditional: true, answers: "CIFAR-10 proposed CE seed 43"}
+  - {id: B73, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-10 proposed CE seed 44"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
