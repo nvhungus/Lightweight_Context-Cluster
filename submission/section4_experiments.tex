@@ -154,7 +154,7 @@ MobileNetV2 \cite{mobilenetv2} & 2.48M & 25.8M & $49.25$ (1) & $52.32$ (1) & $94
 ShuffleNetV2-x1.0 \cite{shufflenetv2} & 1.46M & 46.3M & $55.78${\scriptsize$\pm$0.30} (3) & $57.36${\scriptsize$\pm$0.40} (3) & $95.40$ & $95.22$ \\
 ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.68M & 96.1M & $58.22${\scriptsize$\pm$0.23} (3) & $59.72${\scriptsize$\pm$0.14} (3) & $95.56$ & $95.86$ \\
 Context Cluster \cite{coc} & 2.46M & 34.4M & $49.45$ (1) & -- & $92.74$ & -- \\
-Hybrid (ours, $\rho{=}0.5$) & 1.80M & 138.9M & $56.40${\scriptsize$\pm$0.21} (3) & $58.19${\scriptsize$\pm$0.25} (3) & $95.44$ & $96.16$ \\
+Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & $56.40${\scriptsize$\pm$0.21} (3) & $58.19${\scriptsize$\pm$0.25} (3) & $95.44$ & $96.16$ \\
 \midrule
 \textbf{All-Local (ours)} & 2.71M & 231.3M & $\mathbf{58.69}${\scriptsize$\pm$0.10} (3) & $\mathbf{61.21}${\scriptsize$\pm$0.40} (3) & $\mathbf{96.20}$ & $\mathbf{96.68}$ \\
 \bottomrule
@@ -171,7 +171,7 @@ that each row isolates a single factor.
 
 \textbf{Clustering does not pay for itself.} Setting $\rho = 0$, which removes
 the local convolutional branch and leaves pure clustering while keeping every
-other choice identical, costs $-0.74$ pp. Setting $\rho = 1$ instead, removing
+other choice identical, costs $0.74$ pp. Setting $\rho = 1$ instead, removing
 the clustering branch entirely, \emph{gains} $+1.03$ pp while using 10\% fewer
 parameters. The two rows bracket the question the paper asks: at this scale and
 resolution the local branch is what carries the accuracy, and the clustering
@@ -180,10 +180,10 @@ branch is a net cost.
 \textbf{The supporting design choices contribute little.} Removing fold
 partitioning ($+0.20$ pp) and removing channel shuffle ($+0.25$ pp) both leave
 accuracy unchanged within run-to-run variation, so neither is load-bearing.
-Changing cluster occupancy in either direction hurts ($-1.02$ pp at $r = 1$,
-$-0.80$ pp at $r = 4$), and giving stage~4 four centres instead of one costs
-$-0.31$ pp. The single largest effect in the table is the stem stride: moving
-from stride~1 to stride~2 costs $-5.72$ pp. Because that change halves the
+Changing cluster occupancy in either direction hurts, by $1.02$ pp at $r = 1$
+and $0.80$ pp at $r = 4$, and giving stage~4 four centres instead of one costs
+$0.31$ pp. The single largest effect in the table is the stem stride: moving
+from stride~1 to stride~2 costs $5.72$ pp. Because that change halves the
 resolution entering every stage as well as altering cluster occupancy, we
 attribute the bulk of it to resolution rather than to clustering.
 
@@ -282,8 +282,8 @@ proposed model remains the more expensive of the two, using 415.0\,MB against
 because it is a regime our claims do not cover.
 
 Two measurements caution against treating operation counts as a latency proxy.
-First, realized arithmetic throughput at batch 128 varies by more than
-fourfold across the models evaluated: ResNet-18 performs $2.41\times$ more
+First, realized arithmetic throughput at batch 128 varies by nearly tenfold
+across the models evaluated: ResNet-18 performs $2.41\times$ more
 operations than the proposed model yet completes a batch of 128 in 28.06\,ms
 against 32.76\,ms, because dense $3\times3$ convolutions map onto far
 better-optimised kernels than the bandwidth-bound depthwise--pointwise stacks
@@ -313,7 +313,7 @@ ResNet-18 (teacher) & 11.27M & 556.8M & 58.75 & 326.7 & 2.64 & 1.752 & 28.06 & 4
 MobileNetV2 & 2.48M & 25.8M & 19.62 & 124.3 & 4.74 & 0.674 & 12.85 & 9970 \\
 ShuffleNetV2-x1.0 & 1.46M & 46.3M & 15.72 & 95.6 & 6.07 & 0.680 & 13.44 & 9683 \\
 ShuffleNetV2-x1.5 & 2.68M & 96.1M & 20.85 & 133.0 & 6.03 & 0.752 & 22.03 & 5768 \\
-Hybrid (ours, $\rho{=}0.5$) & 1.80M & 138.9M & 19.70 & 481.6 & 7.68 & 1.212 & 36.47 & 3408 \\
+Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & 19.70 & 481.6 & 7.68 & 1.212 & 36.47 & 3408 \\
 \midrule
 \textbf{All-Local (ours)} & 2.71M & 231.3M & 22.58 & 415.0 & 3.50 & 0.804 & 32.76 & 3803 \\
 \bottomrule

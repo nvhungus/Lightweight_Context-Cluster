@@ -15,7 +15,8 @@ the most accuracy? This paper answers it for low-resolution inputs by holding
 parameters fixed, training every model under the same budget, and measuring
 cost on real hardware instead of inferring it from operation counts.
 
-It is worth being precise about why parameters and not operations. A model
+The distinction between parameters and operations deserves to be made
+precisely. A model
 shipped to a device occupies flash permanently, travels over the air on every
 update, and is resident in RAM for as long as it is loaded; all three scale
 with the parameter count and none with the operation count. Arithmetic, by
@@ -87,8 +88,9 @@ Two caveats belong in the opening rather than buried later. The win holds
 under distillation; with plain cross-entropy the margin over
 ShuffleNetV2-x1.5 falls to $0.47$ pp and does not reach significance, and the
 model merely ties its teacher. And the accuracy is bought with compute: at
-matched parameters the proposed model performs $2.41\times$ the operations of
-ShuffleNetV2-x1.5, though still $2.41\times$ fewer than the ResNet-18 it beats.
+matched parameters the proposed model performs 231M multiply--accumulates
+against ShuffleNetV2-x1.5's 96M, though still well under the 557M of the
+ResNet-18 it beats.
 
 This paper contributes a controlled ablation of context clustering in the
 lightweight low-resolution regime and the negative conclusion that it does not
@@ -96,7 +98,8 @@ pay for itself there; an all-local configuration that beats a
 parameter-matched baseline and its own teacher on two datasets; a cost
 protocol using graph-verified latency, per-batch-size memory reset and
 weights reported separately from activations, together with the observation
-that operation counts mispredict measured latency by more than fourfold; and
+that realized arithmetic throughput varies by nearly tenfold across the models
+compared, so operation counts are a poor proxy for measured latency; and
 a release of every configuration, seed, per-image prediction and provenance
 record behind the numbers.
 
@@ -248,9 +251,9 @@ convolution that expands $C$ channels to $8C$, normalises, and projects back
 with a $1\times1$ convolution, costing $72C$ frozen weights, $16C$
 normalisation parameters and $8C^2 + 2C$ in the projection, or $8C^2 + 90C$ in
 total. A learned $3\times3$ convolution with batch normalisation costs
-$9C^2 + 2C$. The difference is $C(88 - C)$, which at the stage-1 width
-$C = 78$ of the final model is $780$ parameters in favour of the fixed filters
---- $0.03\%$ of the network. The frozen weights are still weights and the
+$9C^2 + 2C$. The difference is $C(88 - C)$, so at the stage-1 width $C = 78$
+of the final model the fixed-filter branch is the larger of the two, by $780$
+parameters or $0.03\%$ of the network. The frozen weights are still weights and the
 expansion still performs multiply--accumulates, so the branch is not free on
 either axis, and the eightfold intermediate is what drives its activation
 memory.

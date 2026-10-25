@@ -5,10 +5,11 @@
 \section{Discussion and Limitations}
 \label{sec:limits}
 
-The result we are most confident in is negative. Context clustering, inserted
-into a fixed MetaFormer skeleton and compared against a convolutional branch
-at the same parameter count, loses by $1.03$ pp at one to three million
-parameters and $32\times32$ input. The supporting machinery built around it
+The result we are most confident in is negative. Built into the same
+MetaFormer skeleton, a pure-clustering model trails a pure-local one by
+$1.77$ pp at one to three million parameters and $32\times32$ input, and the
+local model carries 10\% fewer parameters while doing it. The supporting
+machinery built around clustering
 --- fold partitioning, channel shuffle, a tuned occupancy --- moves accuracy
 by less than seed variance, and the one setting that matters a great deal,
 the stem stride, matters because of resolution rather than because of
@@ -71,8 +72,8 @@ prefer the proposed model, which is more accurate at the same parameter count
 and barely more expensive at batch one. A deployment bound by arithmetic or by
 batched throughput --- a server classifying large batches, a device whose
 accelerator is already saturated --- should prefer ShuffleNetV2-x1.5, which
-gives up a point and a half of accuracy for a third of the operations and half
-again the throughput. We state the rule in both directions because the
+gives up a point and a half of accuracy for less than half the operations and
+half again the throughput. We state the rule in both directions because the
 parameter axis is the one we optimised and it would be misleading to present a
 model that loses on throughput as uniformly better.
 
