@@ -18,7 +18,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 
-OUT = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent
+# Write straight into the Overleaf upload folder so the PDFs have one home.
+OUT = _HERE.parents[1] / 'submission'
+OUT.mkdir(parents=True, exist_ok=True)
 
 plt.rcParams.update({
     "font.family": "serif",

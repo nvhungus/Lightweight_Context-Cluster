@@ -1,0 +1,75 @@
+% =====================================================================
+% Sections V and VI.  \input{} from main.tex.
+% =====================================================================
+
+\section{Discussion and Limitations}
+\label{sec:limits}
+
+The result we are most confident in is negative. Context clustering, inserted
+into a fixed MetaFormer skeleton and compared against a convolutional branch
+at the same parameter count, loses by $1.03$ pp at one to three million
+parameters and $32\times32$ input. The supporting machinery built around it
+--- fold partitioning, channel shuffle, a tuned occupancy --- moves accuracy
+by less than seed variance, and the one setting that matters a great deal,
+the stem stride, matters because of resolution rather than because of
+clustering. None of this contradicts \cite{coc}, which reports a different
+operating point; it bounds where the mechanism is useful.
+
+The positive result is narrower than the headline number suggests, in three
+specific ways.
+
+\textbf{It depends on distillation.} Under cross-entropy the proposed model
+leads ShuffleNetV2-x1.5 by $0.47$ pp, which does not reach significance over
+three seeds ($p = 0.051$), and it does not beat the ResNet-18 teacher at all
+($-0.07$ pp, $p = 0.405$). Only with distillation does the margin reach $1.49$
+pp and the teacher comparison reverse. Every claim in this paper about
+exceeding the teacher is therefore a claim about the distilled setting.
+
+\textbf{We cannot explain the distillation asymmetry.} Given an identical
+teacher, temperature and loss weight, the proposed model gains $2.52$ pp from
+distillation while ShuffleNetV2-x1.5 gains $1.50$ pp and ShuffleNetV2-x1.0
+gains $1.58$ pp. The obvious explanation, that a weaker model has more room to
+improve, predicts the opposite of what we observe: the proposed model has the
+higher cross-entropy accuracy and still gains more. We report the asymmetry
+because it is what produces the headline margin, and we decline to attribute
+a mechanism to it without a test. Establishing whether this is a property of
+the architecture, of the width, or of the $7\times7$ kernels would need a
+study of its own.
+
+\textbf{The accuracy is paid for in compute.} At matched parameters the
+proposed model performs $2.41\times$ the operations of ShuffleNetV2-x1.5,
+occupies $3.12\times$ its peak memory at batch 128, and reaches $0.66\times$
+its throughput. It is cheaper than the teacher it beats on every static axis
+--- $4.16\times$ fewer parameters, $2.41\times$ fewer operations, $2.60\times$
+less memory at batch one --- but against the parameter-matched baseline the
+exchange is accuracy for compute, and a deployment limited by arithmetic
+rather than by model size should prefer the baseline.
+
+Two further limits constrain how far the numbers travel. Both datasets are
+evaluated at $32\times32$, which for Tiny-ImageNet means downsampling from the
+native $64\times64$; our absolute accuracies are therefore not comparable to
+published results at the native resolution, and we make no such comparison.
+And while every Tiny-ImageNet configuration is run with three seeds, the
+CIFAR-10 results come from a single seed each; their significance rests on
+paired tests over $10{,}000$ test images within that seed, which is a weaker
+guarantee than seed-level replication.
+
+% ---------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+
+We set out to test whether context clustering earns its place in a lightweight
+classifier at low resolution, and found that it does not: at a matched
+parameter budget, replacing the clustering branch with a convolutional one
+improves Tiny-ImageNet accuracy by $1.03$ pp while using fewer parameters, and
+the design choices that surround clustering contribute less than seed
+variance. Carrying that conclusion through yields a clustering-free model
+which, at 2.71M parameters with $7\times7$ depthwise kernels and logit
+distillation, reaches $61.21 \pm 0.40$ on Tiny-ImageNet and $96.68$ on
+CIFAR-10, exceeding a parameter-matched ShuffleNetV2-x1.5 by $1.49$ pp and its
+own ResNet-18 teacher by $2.46$ pp while using $4.16\times$ fewer parameters
+than that teacher. The gain is conditional on distillation and costs
+$2.41\times$ the operations of the parameter-matched baseline, and we report
+both alongside the measured memory and latency rather than parameter counts
+alone. The ablations, configurations, seeds and per-image predictions behind
+every number are released.

@@ -124,11 +124,14 @@
 \def\IEEEbibitemsep{1.5pt plus .5pt}
 \makeatother
 
+% The shipped template sets these to "Tóm tắt" and "Từ khóa". The paper is in
+% English, so both are overridden here. \abstractname must stay inside
+% \AtBeginDocument: babel sets it at \begin{document} and would otherwise win.
 \makeatletter
 \AtBeginDocument{
-  \renewcommand{\abstractname}{Tóm tắt}
+  \renewcommand{\abstractname}{Abstract}
 }
-\renewcommand{\IEEEkeywordsname}{Từ khóa}
+\renewcommand{\IEEEkeywordsname}{Index Terms}
 \makeatother
 
 \begin{document}
@@ -151,8 +154,31 @@
 \maketitle
 
 \begin{abstract}
-% ~250 words. No special characters, symbols or math in title or abstract.
-TODO: paste the final abstract here.
+% The template warns against special characters, symbols or math here, so this
+% paragraph is deliberately plain text with no inline math.
+Lightweight image classification at low input resolution is usually limited by
+model size rather than by arithmetic throughput, which makes accuracy at a
+fixed parameter budget the operative figure of merit. We ask whether the
+Context Cluster token mixer, introduced for 5.3M-parameter models at 224 by
+224, keeps its benefit in that regime, and answer with single-change ablations
+under a matched training budget, three seeds per configuration and paired
+significance tests. It does not. Holding the stem, fold partitioning and block
+depth fixed and removing the local convolutional branch costs 0.74 points on
+Tiny-ImageNet, whereas removing the clustering branch instead gains 1.03
+points at 10 percent fewer parameters. A hand-designed sparse local filter is
+likewise matched by a plain learned 3 by 3 convolution while using 2.50 times
+less activation memory. Scaling the resulting all-local design to the
+parameter budget of ShuffleNetV2-x1.5, widening its depthwise kernels to 7 by
+7 and training it with logit distillation reaches 61.21 plus or minus 0.40
+top-1 on Tiny-ImageNet, against 59.72 plus or minus 0.14 for ShuffleNetV2-x1.5
+trained identically from the same teacher, and 58.76 plus or minus 0.06 for
+the ResNet-18 teacher itself, using 4.16 times fewer parameters and 2.41 times
+fewer operations than that teacher. On CIFAR-10 it leads ShuffleNetV2-x1.5 by
+0.82 points and matches the teacher at 4.25 times fewer parameters. The gain
+is conditional on distillation and costs 2.41 times the operations of the
+parameter-matched baseline; we report measured memory and latency in both
+eager and graph-captured execution, and show that operation counts mispredict
+measured latency by more than fourfold.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -164,48 +190,15 @@ TODO: paste the final abstract here.
 % ---------------------------------------------------------------------
 % CHANGE 3 of 4: six-section body
 % ---------------------------------------------------------------------
-\section{Introduction}
-\label{sec:intro}
-% ~850 words, 7 paragraphs. Last paragraph = 2-sentence limitations preview.
-
-\section{Related Work}
-\label{sec:related}
-% ~480 words, 3 paragraphs.
-\subsection{Lightweight convolutional networks}
-\subsection{Token mixers and MetaFormer}
-\subsection{Knowledge distillation}
-
-\section{Methodology}
-\label{sec:method}
-% ~750 words. Figure 1 goes at the top of this page.
-\subsection{The hybrid block and its design space}
-\subsection{The All-Local configuration}
-
-\begin{figure*}[!t]
-\centering
-\includegraphics[width=\textwidth]{fig1_architecture.pdf}
-\caption{The All-Local (2.7M) architecture. A stride-1 stem preserves the
-$32\times32$ resolution into stage~1, whose token mixer is a learned
-$3\times3$ convolution; stages~2--4 use $7\times7$ depthwise followed by
-$1\times1$ pointwise convolution. Neither context clustering nor the fixed
-LBP filters of the hybrid model appear in the final design.}
-\label{fig:arch}
-\end{figure*}
+% Sections I, II, III (Fig. 1 floats inside the Methodology section)
+\input{sections_intro_related_method}
 
 \section{Experiments}
 \label{sec:exp}
 \input{section4_experiments}
 
-\section{Discussion and Limitations}
-\label{sec:limits}
-% ~400 words. Cover: 32x32 only and incomparability to 64x64 work; the
-% 100/250-epoch budget; 2.41x the MACs of ShuffleNetV2-x1.5; 3.12x its
-% batch-128 memory and 0.66x its throughput; CIFAR-10 at a single seed;
-% and the untested distillation asymmetry of Section IV-B.
-
-\section{Conclusion}
-\label{sec:conclusion}
-% ~190 words, 4 sentences, no new claims.
+% Sections V and VI
+\input{sections_discussion_conclusion}
 
 \section*{Acknowledgement}
 The authors would like to thank...
