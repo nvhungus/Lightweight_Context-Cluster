@@ -1,0 +1,266 @@
+% =====================================================================
+% FJCAI 2027 -- paper skeleton.
+%
+% Built from FJCAI2027_Template_LaTeX.tex. ONLY the four marked blocks
+% differ from the shipped template; everything else is byte-identical and
+% must stay that way (the template says margins, columns, line spacing and
+% fonts are prescribed).
+%
+% Compile with pdfLaTeX. XeLaTeX/LuaLaTeX WILL FAIL: \usepackage[utf8]{vietnam}
+% is a pdfTeX-era package.
+%
+% Upload beside this file: IEEEtran.cls, fig1_architecture.pdf, fig2_pareto.pdf
+% =====================================================================
+
+\documentclass[9pt, conference, a4paper, compsocconf]{IEEEtran}
+\usepackage{amsmath,amsxtra,amssymb,amsthm,latexsym,amscd,amsfonts}
+\usepackage[utf8]{vietnam}
+\usepackage[top=2.7cm, bottom = 5.4cm, left=2.72cm, right = 2.85cm]{geometry}
+\headsep = 0.7cm
+\headheight = 1.0cm
+\footskip = 1.0cm
+\voffset = -0.74 cm
+%%%%
+\usepackage{balance}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{cite}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{amsmath,amsxtra,amssymb,amsthm,latexsym,amscd,amsfonts}
+\usepackage{pgfplots}
+\usepackage{multirow}
+\usepackage{subcaption}
+\pgfplotsset{compat=1.17}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{shapes}
+\usetikzlibrary{calc}
+\usetikzlibrary{fit}
+\usepackage[english]{babel}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\renewcommand{\sectionmark}[1]{\markright{\MakeUppercase{#1}}{}}
+\renewcommand{\headrulewidth}{0pt}
+\ifCLASSINFOpdf
+\usepackage[pdftex]{graphicx}
+  \DeclareGraphicsExtensions{.pdf,.jpeg,.png,.jpg}
+\else
+\usepackage[dvips]{graphicx}
+  \DeclareGraphicsExtensions{.eps}
+\fi
+\usepackage{array}
+
+\usepackage{caption}
+\captionsetup{
+  font={footnotesize},
+  justification=centering,
+  singlelinecheck=false
+}
+\usepackage[font=footnotesize]{subfig}
+
+% ---------------------------------------------------------------------
+% CHANGE 1 of 4: conference year 2026 -> 2027 (appears 3x in this file).
+% CONFIRM the day/month and city with the organizers before submitting:
+% the shipped template says "Cần Thơ, 27-28/3/2026" and only the YEAR is
+% changed below. If FJCAI 2027 moves city or dates, edit those too.
+% ---------------------------------------------------------------------
+\makeatletter
+\def\ps@IEEEtitlepagestyle{%
+\def\@oddhead{\hfil \small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Cần Thơ, 27-28/3/2027}\hfil}%
+	\def\@evenhead{\hfil\small{\textit{Hội thảo khoa học quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Cần Thơ, 27-28/3/2027}\hfil}}%
+		\def\@oddfoot{\scriptsize \thepage \hfil }%
+		\def\@evenfoot{\scriptsize \hfil \thepage}
+	}
+}
+
+\def\@maketitle{%
+  \newpage
+  \null
+  \begin{center}%
+    {%
+      \fontsize{16}{18}\selectfont
+      \bfseries \@title \par
+    }%
+    \vskip 4em%
+    {%
+    \fontsize{9}{3.5}\selectfont
+      \begin{tabular}[t]{c}%
+        \@author
+      \end{tabular}\par
+    }%
+  \end{center}%
+  \par
+}
+
+\renewenvironment{abstract}
+  {\normalfont
+   \@IEEEabskeysecsize
+   \setlength{\parindent}{0pt}
+   \noindent
+   \if@twocolumn
+     \bfseries\textit{\abstractname}:
+   \else
+     \begin{center}\textbf{\abstractname}\end{center}
+   \fi}
+  {\par}
+
+\renewenvironment{IEEEkeywords}
+  {\normalfont
+   \@IEEEabskeysecsize
+   \vspace{0.3em}
+   \setlength{\parindent}{0pt}
+   \noindent
+   {\bfseries\itshape \IEEEkeywordsname: }\ignorespaces}
+  {\par}
+
+\def\IEEEbibitemsep{1.5pt plus .5pt}
+\makeatother
+
+\makeatletter
+\AtBeginDocument{
+  \renewcommand{\abstractname}{Tóm tắt}
+}
+\renewcommand{\IEEEkeywordsname}{Từ khóa}
+\makeatother
+
+\begin{document}
+\pagenumbering{gobble}
+\fontsize{9}{10}
+\selectfont
+
+\fancyhead[RE,LO]{\centering{\small{\textit{Hội thảo khoa học Quốc gia về Trí tuệ nhân tạo 2027 (FJCAI) - Cần Thơ, 27-28/3/2027}}}}
+
+% ---------------------------------------------------------------------
+% CHANGE 2 of 4: title and authors
+% ---------------------------------------------------------------------
+\title{Do Context Clusters Help Lightweight Image Classification?\\ An Ablation Study and a Stronger All-Local Baseline}
+
+\author{\IEEEauthorblockN{Nguyen Viet Hung\IEEEauthorrefmark{1}, Nguyen Ba Nam\IEEEauthorrefmark{1}, Le Hoang Thai\IEEEauthorrefmark{1}}
+	\IEEEauthorblockA{\IEEEauthorrefmark{1}Faculty of Information Technology, University of Science, VNU-HCM, Vietnam}
+	\IEEEauthorblockA{Email: 23122032@student.hcmus.edu.vn, 23122043@student.hcmus.edu.vn, lhthai@fit.hcmus.edu.vn}
+}
+
+\maketitle
+
+\begin{abstract}
+% ~250 words. No special characters, symbols or math in title or abstract.
+TODO: paste the final abstract here.
+\end{abstract}
+
+\begin{IEEEkeywords}
+\textbf{\textit{lightweight image classification; ablation study; context cluster; knowledge distillation; efficient architectures}}
+\end{IEEEkeywords}
+
+\IEEEpeerreviewmaketitle
+
+% ---------------------------------------------------------------------
+% CHANGE 3 of 4: six-section body
+% ---------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+% ~850 words, 7 paragraphs. Last paragraph = 2-sentence limitations preview.
+
+\section{Related Work}
+\label{sec:related}
+% ~480 words, 3 paragraphs.
+\subsection{Lightweight convolutional networks}
+\subsection{Token mixers and MetaFormer}
+\subsection{Knowledge distillation}
+
+\section{Methodology}
+\label{sec:method}
+% ~750 words. Figure 1 goes at the top of this page.
+\subsection{The hybrid block and its design space}
+\subsection{The All-Local configuration}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{fig1_architecture.pdf}
+\caption{The All-Local (2.7M) architecture. A stride-1 stem preserves the
+$32\times32$ resolution into stage~1, whose token mixer is a learned
+$3\times3$ convolution; stages~2--4 use $7\times7$ depthwise followed by
+$1\times1$ pointwise convolution. Neither context clustering nor the fixed
+LBP filters of the hybrid model appear in the final design.}
+\label{fig:arch}
+\end{figure*}
+
+\section{Experiments}
+\label{sec:exp}
+\input{section4_experiments}
+
+\section{Discussion and Limitations}
+\label{sec:limits}
+% ~400 words. Cover: 32x32 only and incomparability to 64x64 work; the
+% 100/250-epoch budget; 2.41x the MACs of ShuffleNetV2-x1.5; 3.12x its
+% batch-128 memory and 0.66x its throughput; CIFAR-10 at a single seed;
+% and the untested distillation asymmetry of Section IV-B.
+
+\section{Conclusion}
+\label{sec:conclusion}
+% ~190 words, 4 sentences, no new claims.
+
+\section*{Acknowledgement}
+The authors would like to thank...
+
+% ---------------------------------------------------------------------
+% CHANGE 4 of 4: references. {99} reserves label width for 2-digit numbers.
+% ---------------------------------------------------------------------
+\balance
+\begin{thebibliography}{99}
+
+\bibitem{coc} X. Ma, Y. Zhou, H. Wang, C. Qin, B. Sun, C. Liu and Y. Fu,
+``Image as set of points,'' in \emph{Proc. Int. Conf. Learning
+Representations (ICLR)}, 2023.
+
+\bibitem{metaformer} W. Yu, M. Luo, P. Zhou, C. Si, Y. Zhou, X. Wang,
+J. Feng and S. Yan, ``MetaFormer is actually what you need for vision,''
+in \emph{Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition
+(CVPR)}, 2022, pp. 10819--10829.
+
+\bibitem{hinton} G. Hinton, O. Vinyals and J. Dean, ``Distilling the
+knowledge in a neural network,'' in \emph{NIPS Deep Learning and
+Representation Learning Workshop}, 2015.
+
+\bibitem{shufflenetv2} N. Ma, X. Zhang, H.-T. Zheng and J. Sun,
+``ShuffleNet V2: Practical guidelines for efficient CNN architecture
+design,'' in \emph{Proc. European Conf. Computer Vision (ECCV)}, 2018,
+pp. 116--131.
+
+\bibitem{mobilenetv2} M. Sandler, A. Howard, M. Zhu, A. Zhmoginov and
+L.-C. Chen, ``MobileNetV2: Inverted residuals and linear bottlenecks,''
+in \emph{Proc. CVPR}, 2018, pp. 4510--4520.
+
+\bibitem{convnext} Z. Liu, H. Mao, C.-Y. Wu, C. Feichtenhofer, T. Darrell
+and S. Xie, ``A ConvNet for the 2020s,'' in \emph{Proc. CVPR}, 2022,
+pp. 11976--11986.
+
+\bibitem{replknet} X. Ding, X. Zhang, J. Han and G. Ding, ``Scaling up your
+kernels to 31x31: Revisiting large kernel design in CNNs,'' in
+\emph{Proc. CVPR}, 2022, pp. 11963--11975.
+
+\bibitem{resnet} K. He, X. Zhang, S. Ren and J. Sun, ``Deep residual
+learning for image recognition,'' in \emph{Proc. CVPR}, 2016, pp. 770--778.
+
+\bibitem{dkd} B. Zhao, Q. Cui, R. Song, Y. Qiu and J. Liang, ``Decoupled
+knowledge distillation,'' in \emph{Proc. CVPR}, 2022, pp. 11953--11962.
+
+\bibitem{tinyimagenet} Y. Le and X. Yang, ``Tiny ImageNet visual
+recognition challenge,'' Stanford CS231N Technical Report, 2015.
+
+\bibitem{mcnemar} T. G. Dietterich, ``Approximate statistical tests for
+comparing supervised classification learning algorithms,''
+\emph{Neural Computation}, vol. 10, no. 7, pp. 1895--1923, 1998.
+
+% TODO: add the remaining references (target ~28 total).
+
+\end{thebibliography}
+
+\end{document}
