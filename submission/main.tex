@@ -149,9 +149,14 @@
 % ---------------------------------------------------------------------
 \title{Do Context Clusters Help Lightweight Image Classification?\\ An Ablation Study and a Stronger All-Local Baseline}
 
-\author{\IEEEauthorblockN{Nguyen Viet Hung, Nguyen Ba Nam, Le Hoang Thai}
-	\IEEEauthorblockA{Faculty of Information Technology, University of Science, VNU-HCM\\
-	Ho Chi Minh City, Vietnam\\
+% Line spacing: the template's \@maketitle sets \fontsize{9}{3.5} for the author
+% block -- a 3.5pt baseline under a 9pt font. Each \\ here therefore becomes a
+% tabular row sized only to its content, which is what makes the block look
+% cramped. The optional argument on \\ adds the missing leading. 3pt brings the
+% spacing close to the 9/10 of the body text; tune between 2pt and 4pt to taste.
+\author{\IEEEauthorblockN{Nguyen Viet Hung, Nguyen Ba Nam, Le Hoang Thai}\\[3pt]
+	\IEEEauthorblockA{Faculty of Information Technology, University of Science, VNU-HCM\\[3pt]
+	Ho Chi Minh City, Vietnam\\[3pt]
 	Email: 23122032@student.hcmus.edu.vn, 23122043@student.hcmus.edu.vn, lhthai@fit.hcmus.edu.vn}
 }
 
@@ -260,7 +265,33 @@ recognition challenge,'' Stanford CS231N Technical Report, 2015.
 comparing supervised classification learning algorithms,''
 \emph{Neural Computation}, vol. 10, no. 7, pp. 1895--1923, 1998.
 
-% TODO: add the remaining references (target ~28 total).
+\bibitem{cifar} A. Krizhevsky, ``Learning multiple layers of features from tiny
+images,'' Technical Report, University of Toronto, 2009.
+
+\bibitem{stochasticdepth} G. Huang, Y. Sun, Z. Liu, D. Sedra and K. Q.
+Weinberger, ``Deep networks with stochastic depth,'' in \emph{Proc. European
+Conf. Computer Vision (ECCV)}, 2016, pp. 646--661.
+
+\bibitem{layerscale} H. Touvron, M. Cord, A. Sablayrolles, G. Synnaeve and
+H. J\'egou, ``Going deeper with image transformers,'' in \emph{Proc. IEEE/CVF
+Int. Conf. Computer Vision (ICCV)}, 2021, pp. 32--42.
+
+\bibitem{randaugment} E. D. Cubuk, B. Zoph, J. Shlens and Q. V. Le,
+``RandAugment: Practical automated data augmentation with a reduced search
+space,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)},
+vol. 33, 2020, pp. 18613--18624.
+
+\bibitem{mixup} H. Zhang, M. Cisse, Y. N. Dauphin and D. Lopez-Paz,
+``mixup: Beyond empirical risk minimization,'' in \emph{Proc. Int. Conf.
+Learning Representations (ICLR)}, 2018.
+
+\bibitem{cutmix} S. Yun, D. Han, S. J. Oh, S. Chun, J. Choe and Y. Yoo,
+``CutMix: Regularization strategy to train strong classifiers with localizable
+features,'' in \emph{Proc. ICCV}, 2019, pp. 6023--6032.
+
+\bibitem{randomerasing} Z. Zhong, L. Zheng, G. Kang, S. Li and Y. Yang,
+``Random erasing data augmentation,'' in \emph{Proc. AAAI Conf. Artificial
+Intelligence}, 2020, pp. 13001--13008.
 
 \end{thebibliography}
 

@@ -183,9 +183,9 @@ Z = Y + \gamma_2 \odot \mathcal{D}\big(\mathcal{M}(\mathrm{BN}(Y))\big),
 \end{equation}
 
 where $\mathcal{T}$ is the token mixer, $\mathcal{M}$ a channel MLP of
-expansion ratio~3, $\mathcal{D}$ stochastic depth, and
-$\gamma_1, \gamma_2 \in \mathbb{R}^{C}$ are LayerScale vectors initialised at
-$10^{-5}$ and broadcast over space. Only $\mathcal{T}$ differs between the
+expansion ratio~3, $\mathcal{D}$ stochastic depth \cite{stochasticdepth}, and
+$\gamma_1, \gamma_2 \in \mathbb{R}^{C}$ are LayerScale \cite{layerscale}
+vectors initialised at $10^{-5}$ and broadcast over space. Only $\mathcal{T}$ differs between the
 models we compare; everything else in \eqref{eq:block1}--\eqref{eq:block2} is
 held fixed, as are the stage depths $[1,1,2,1]$ and the stride-2 point
 reducers that separate stages.

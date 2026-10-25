@@ -8,7 +8,7 @@
 \label{sec:setup}
 
 \textbf{Datasets.} We evaluate on Tiny-ImageNet \cite{tinyimagenet} (200
-classes) and CIFAR-10 (10 classes). Both are processed at $32\times32$
+classes) and CIFAR-10 \cite{cifar} (10 classes). Both are processed at $32\times32$
 resolution. For Tiny-ImageNet this means downsampling from the native
 $64\times64$, which discards information and makes our absolute numbers
 \emph{not} comparable to work that evaluates at $64\times64$; we adopt it
@@ -23,8 +23,9 @@ epoch using the reported test set.
 
 \textbf{Budget parity.} Every model, proposed or baseline, is trained for the
 same number of epochs on a given dataset: 100 on Tiny-ImageNet and 250 on
-CIFAR-10. We use identical augmentation (RandAugment, random erasing, mixup
-and CutMix), the same optimiser and schedule, and the same batch size. No
+CIFAR-10. We use identical augmentation --- RandAugment \cite{randaugment},
+random erasing \cite{randomerasing}, mixup \cite{mixup} and CutMix
+\cite{cutmix} --- the same optimiser and schedule, and the same batch size. No
 model receives a tuned recipe of its own.
 
 \textbf{Knowledge distillation.} Where distillation is used, every student,
@@ -39,8 +40,8 @@ seeds ($42, 43, 44$); tables report the mean and standard deviation, with the
 number of runs $n$ given explicitly. Differences between groups are tested
 two ways. At the seed level we use Welch's unequal-variance $t$-test on the
 three per-seed accuracies. Within a seed we use an exact paired McNemar test
-on the $10{,}000$ test predictions of the two models being compared, which
-uses the pairing that a $t$-test over seed means discards. We report both
+\cite{mcnemar} on the $10{,}000$ test predictions of the two models being
+compared, which uses the pairing that a $t$-test over seed means discards. We report both
 because they answer different questions, and we state $n$ wherever it is
 below three.
 
