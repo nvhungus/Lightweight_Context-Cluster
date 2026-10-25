@@ -143,6 +143,18 @@
 \renewcommand{\IEEEkeywordsname}{Index Terms}
 \makeatother
 
+% hyperref must load LAST, after every \makeatletter block above, so that the
+% template's custom \@maketitle, \ps@IEEEtitlepagestyle and abstract/keywords
+% environments are already defined and survive untouched.
+%   hidelinks      no coloured frames; IEEE wants links invisible in print
+%   breaklinks     the link annotation is split across lines, so a URL that
+%                  wraps stays clickable on every line (pdfTeX supports this)
+%   unicode        PDF strings are written as UTF-16, which is what prevents
+%                  "Token not allowed in a PDF string" on non-ASCII text
+%   bookmarks=false  no outline is generated, removing the main remaining
+%                  source of PDF-string trouble; a conference paper needs none
+\usepackage[hidelinks,breaklinks=true,unicode,bookmarks=false]{hyperref}
+
 \begin{document}
 \pagenumbering{gobble}
 \fontsize{9}{10}
