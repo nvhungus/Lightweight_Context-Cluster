@@ -93,6 +93,22 @@ CIFAR-10 results come from a single seed each; their significance rests on
 paired tests over $10{,}000$ test images within that seed, which is a weaker
 guarantee than seed-level replication.
 
+Finally, a point about what the negative result does and does not cover. We
+tested one clustering formulation --- similarity-based assignment to proposed
+centres with fold-limited scope, aggregation and dispatch, as specified in
+\cite{coc} --- inside one skeleton, at one resolution, across a narrow band of
+parameter budgets. We did not test clustering as a class of token mixer.
+Soft or learned assignment, centres shared across stages, a different
+similarity, or an occupancy schedule tuned jointly with the stem could each
+behave differently, and nothing here rules them out. The claim we are entitled
+to is narrower than ``clustering does not work at small scale'': it is that
+this clustering operation, inserted in place of a convolutional branch at
+equal parameters, does not repay its cost in this regime. We think that
+narrower claim is still worth reporting, because it is the configuration a
+practitioner would reach for first when shrinking \cite{coc}, and because the
+comparison that would otherwise be cited in its favour confounds the mixer
+with the stem, the depth and the fold design.
+
 % ---------------------------------------------------------------------
 \section{Conclusion}
 \label{sec:conclusion}
