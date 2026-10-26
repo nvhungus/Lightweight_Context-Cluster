@@ -300,7 +300,8 @@ second, and we claim only the former.
 \renewcommand{\arraystretch}{1.15}
 \caption{\uppercase{Measured cost on one NVIDIA Tesla T4, fp32, $32\times32$ input,
 200-class head, all models profiled in a single session. Memory is peak
-allocated; latency is the median of five timed loops.}}
+allocated; latency is the median of five timed loops. Throughput is measured
+at batch 128.}}
 \label{tab:cost}
 \centering
 \footnotesize
@@ -308,7 +309,7 @@ allocated; latency is the median of five timed loops.}}
 \toprule
 & & & \multicolumn{2}{c}{Peak memory (MB)} & \multicolumn{3}{c}{Latency (ms)} & Throughput \\
 \cmidrule(lr){4-5}\cmidrule(lr){6-8}
-Model & Params & MACs & $b{=}1$ & $b{=}128$ & eager $b{=}1$ & graph $b{=}1$ & graph $b{=}128$ & (img/s) \\
+Model & Params & MACs & $b{=}1$ & $b{=}128$ & eager $b{=}1$ & graph $b{=}1$ & graph $b{=}128$ & $b{=}128$ (img/s) \\
 \midrule
 ResNet-18 (teacher) & 11.27M & 556.8M & 58.75 & 326.7 & 2.64 & 1.752 & 28.06 & 4709 \\
 MobileNetV2 & 2.48M & 25.8M & 19.62 & 124.3 & 4.74 & 0.674 & 12.85 & 9970 \\
