@@ -76,10 +76,12 @@ the three seeds under a paired McNemar test. The same model exceeds the
 ResNet-18 teacher that supervised it by $+2.46$ pp ($p = 0.008$) while using
 $4.16\times$ fewer parameters and $2.41\times$ fewer multiply--accumulate
 operations. The comparison holds on CIFAR-10, where
-the proposed model leads ShuffleNetV2-x1.5 by $+0.82$ pp with distillation
-(McNemar $p = 0.009$) and by $+0.64$ pp without it ($p = 0.014$), and is
-statistically indistinguishable from the teacher ($-0.08$ pp validation,
-$+0.15$ pp test, $p = 0.432$) at $4.25\times$ fewer parameters.
+the proposed model leads ShuffleNetV2-x1.5 by $+0.53$ pp under distillation
+(Welch $p = 0.011$, with a paired McNemar test significant on each of the
+three seeds) and by $+0.41$ pp without it (Welch $p = 0.024$, McNemar
+significant on two of the three). There it matches the ResNet-18 teacher on
+the test set ($96.15$ against $96.16$, $p = 0.90$) at $4.25\times$ fewer
+parameters rather than exceeding it.
 
 \textbf{The cross-entropy picture is weaker, and we state it plainly.}
 Without distillation the proposed model reaches $58.69 \pm 0.10$ against
@@ -136,7 +138,8 @@ over cannot be rescued by parameters.
 \renewcommand{\arraystretch}{1.15}
 \caption{\uppercase{Main results. Top-1 accuracy (\%) at $32\times32$, mean $\pm$ standard
 deviation over $n$ seeds. Tiny-ImageNet: 100 epochs, $n$ as shown. CIFAR-10:
-250 epochs, single seed. Every distilled student uses the same ResNet-18
+250 epochs, three seeds for the proposed model, ShuffleNetV2-x1.5 and the
+teacher and a single seed for the remaining baselines. Every distilled student uses the same ResNet-18
 teacher trained on the same dataset and seed, with $\alpha = 0.5$ and $T = 4$.
 ResNet-18 is that teacher, so it is trained with cross-entropy only and has no
 KD entry. Parameters and MACs are for the 200-class head; the CIFAR-10
@@ -150,14 +153,14 @@ variants differ only in the classifier.}}
 \cmidrule(lr){4-5}\cmidrule(lr){6-7}
 Model & Params & MACs & CE ($n$) & KD ($n$) & CE & KD \\
 \midrule
-ResNet-18 (teacher) \cite{resnet} & 11.27M & 556.8M & $58.76${\scriptsize$\pm$0.06} (3) & -- & $96.76$ & -- \\
+ResNet-18 (teacher) \cite{resnet} & 11.27M & 556.8M & $58.76${\scriptsize$\pm$0.06} (3) & -- & $96.68${\scriptsize$\pm$0.07} & -- \\
 MobileNetV2 \cite{mobilenetv2} & 2.48M & 25.8M & $49.25$ (1) & $52.32$ (1) & $94.06$ & $94.28$ \\
 ShuffleNetV2-x1.0 \cite{shufflenetv2} & 1.46M & 46.3M & $55.78${\scriptsize$\pm$0.30} (3) & $57.36${\scriptsize$\pm$0.40} (3) & $95.40$ & $95.22$ \\
-ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.68M & 96.1M & $58.22${\scriptsize$\pm$0.23} (3) & $59.72${\scriptsize$\pm$0.14} (3) & $95.56$ & $95.86$ \\
+ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.68M & 96.1M & $58.22${\scriptsize$\pm$0.23} (3) & $59.72${\scriptsize$\pm$0.14} (3) & $95.69${\scriptsize$\pm$0.16} & $95.97${\scriptsize$\pm$0.11} \\
 Context Cluster \cite{coc} & 2.46M & 34.4M & $49.45$ (1) & -- & $92.74$ & -- \\
 Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & $56.40${\scriptsize$\pm$0.21} (3) & $58.19${\scriptsize$\pm$0.25} (3) & $95.44$ & $96.16$ \\
 \midrule
-\textbf{All-Local (ours)} & 2.71M & 231.3M & $\mathbf{58.69}${\scriptsize$\pm$0.10} (3) & $\mathbf{61.21}${\scriptsize$\pm$0.40} (3) & $\mathbf{96.20}$ & $\mathbf{96.68}$ \\
+\textbf{All-Local (ours)} & 2.71M & 231.3M & $\mathbf{58.69}${\scriptsize$\pm$0.10} (3) & $\mathbf{61.21}${\scriptsize$\pm$0.40} (3) & $\mathbf{96.10}${\scriptsize$\pm$0.11} & $\mathbf{96.50}${\scriptsize$\pm$0.16} \\
 \bottomrule
 \end{tabular}
 \end{table*}
