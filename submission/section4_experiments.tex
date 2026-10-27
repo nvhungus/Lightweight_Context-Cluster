@@ -68,35 +68,35 @@ are available at \mbox{\url{github.com/nvhungus/context-cluster-ablation}}.
 \label{sec:main}
 
 Table~\ref{tab:main} reports both datasets. Under distillation the proposed
-All-Local model reaches $61.21 \pm 0.40$ top-1 on Tiny-ImageNet, against $59.72 \pm 0.14$ for
+All-Local model reaches $61.30 \pm 0.39$ top-1 on Tiny-ImageNet, against $59.79 \pm 0.38$ for
 the parameter-matched ShuffleNetV2-x1.5 \cite{shufflenetv2} trained
-identically from the same teacher. The margin of $+1.49$ pp is significant at
-the seed level (Welch $t = 6.10$, $p = 0.016$) and, independently, on each of
+identically from the same teacher. The margin of $+1.51$ pp is significant at
+the seed level (Welch $t = 4.84$, $p = 0.008$) and, independently, on each of
 the three seeds under a paired McNemar test. The same model exceeds the
-ResNet-18 teacher that supervised it by $+2.46$ pp ($p = 0.008$) while using
+ResNet-18 teacher that supervised it by $+2.59$ pp ($p = 0.003$) while using
 $4.16\times$ fewer parameters and $2.41\times$ fewer multiply--accumulate
 operations. The comparison holds on CIFAR-10, where
-the proposed model leads ShuffleNetV2-x1.5 by $+0.53$ pp under distillation
-(Welch $p = 0.011$, with a paired McNemar test significant on each of the
-three seeds) and by $+0.41$ pp without it (Welch $p = 0.024$, McNemar
-significant on two of the three). There it matches the ResNet-18 teacher on
+the proposed model leads ShuffleNetV2-x1.5 by $+0.55$ pp under distillation
+(Welch $p = 0.008$, McNemar significant on all three seeds) and by $+0.39$ pp
+without it, which misses seed-level significance ($p = 0.073$) though McNemar
+is significant on two of three. There it matches the ResNet-18 teacher on
 the test set ($96.15$ against $96.16$, $p = 0.90$) at $4.25\times$ fewer
 parameters rather than exceeding it.
 
 \textbf{The cross-entropy picture is weaker, and we state it plainly.}
-Without distillation the proposed model reaches $58.69 \pm 0.10$ against
-$58.22 \pm 0.23$ for ShuffleNetV2-x1.5. That $+0.47$ pp margin does not reach
-significance at the seed level ($p = 0.051$), and against the ResNet-18
-teacher the proposed model is $-0.07$ pp, a tie ($p = 0.405$). The
+Without distillation the proposed model reaches $58.92 \pm 0.28$ against
+$58.02 \pm 0.36$ for ShuffleNetV2-x1.5. That $+0.90$ pp margin is significant
+over seeds ($p = 0.030$), but the CIFAR-10 margin of $+0.39$ pp is not, and
+against the ResNet-18 teacher the model is $+0.21$ pp, a tie ($p = 0.345$). The
 beat-the-teacher result reported above therefore holds \emph{in the distilled
 setting}, and we condition every such claim on that setting rather than
 presenting it as an unconditional property of the architecture.
 
 \textbf{An asymmetry we observe but do not explain.} Given the identical
-distillation recipe, the proposed model gains $+2.52$ pp from distillation
-while ShuffleNetV2-x1.5 gains $+1.50$ pp and ShuffleNetV2-x1.0 gains $+1.58$
-pp. The proposed design converts the same teacher signal into roughly one
-additional percentage point. We note that this is not explained by headroom:
+distillation recipe, the proposed model gains $+2.38$ pp from distillation
+while ShuffleNetV2-x1.5 gains $+1.77$ pp and ShuffleNetV2-x1.0 gains $+1.82$
+pp. The proposed design converts the same teacher signal into roughly six
+tenths of an additional point. We note that this is not explained by headroom:
 the proposed model has the \emph{higher} cross-entropy accuracy of the pair
 and therefore less room to improve, yet gains more. We have not tested a
 mechanism for this and do not propose one; we report it as an observation and
@@ -105,8 +105,8 @@ fixed, identical distillation protocol applied to every model, the proposed
 architecture is the more accurate one at a matched parameter budget.
 
 \textbf{A caveat about the MobileNetV2 row.} MobileNetV2 is the clear outlier
-in Table~\ref{tab:main}: at 2.48M parameters it reaches $49.25$ on
-Tiny-ImageNet, $6.53$ pp below a ShuffleNetV2-x1.0 that carries $41\%$ fewer
+in Table~\ref{tab:main}: at 2.48M parameters it reaches $49.49$ on
+Tiny-ImageNet, $6.43$ pp below a ShuffleNetV2-x1.0 that carries $41\%$ fewer
 parameters. The cause is resolution, and part of it is our own adaptation.
 Each of these networks was designed for $224\times224$ and reduces resolution
 $32\times$ end to end, which leaves a $1\times1$ map at $32\times32$ input, so
@@ -136,7 +136,7 @@ over cannot be rescued by parameters.
 % when a table* and a table are queued separately.
 \begin{table*}[!t]
 \renewcommand{\arraystretch}{1.15}
-\caption{\uppercase{Main results. Top-1 accuracy (\%) at $32\times32$, mean $\pm$ standard
+\caption{\uppercase{Main results. Top-1 test accuracy (\%) at $32\times32$, mean $\pm$ standard
 deviation over $n$ seeds. Tiny-ImageNet: 100 epochs, $n$ as shown. CIFAR-10:
 250 epochs, three seeds for the proposed model, ShuffleNetV2-x1.5 and the
 teacher and a single seed for the remaining baselines. Every distilled student uses the same ResNet-18
@@ -153,14 +153,14 @@ variants differ only in the classifier.}}
 \cmidrule(lr){4-5}\cmidrule(lr){6-7}
 Model & Params & MACs & CE ($n$) & KD ($n$) & CE & KD \\
 \midrule
-ResNet-18 (teacher) \cite{resnet} & 11.27M & 556.8M & $58.76${\scriptsize$\pm$0.06} (3) & -- & $96.68${\scriptsize$\pm$0.07} & -- \\
-MobileNetV2 \cite{mobilenetv2} & 2.48M & 25.8M & $49.25$ (1) & $52.32$ (1) & $94.06$ & $94.28$ \\
-ShuffleNetV2-x1.0 \cite{shufflenetv2} & 1.46M & 46.3M & $55.78${\scriptsize$\pm$0.30} (3) & $57.36${\scriptsize$\pm$0.40} (3) & $95.40$ & $95.22$ \\
-ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.68M & 96.1M & $58.22${\scriptsize$\pm$0.23} (3) & $59.72${\scriptsize$\pm$0.14} (3) & $95.69${\scriptsize$\pm$0.16} & $95.97${\scriptsize$\pm$0.11} \\
-Context Cluster \cite{coc} & 2.46M & 34.4M & $49.45$ (1) & -- & $92.74$ & -- \\
-Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & $56.40${\scriptsize$\pm$0.21} (3) & $58.19${\scriptsize$\pm$0.25} (3) & $95.44$ & $96.16$ \\
+ResNet-18 (teacher) \cite{resnet} & 11.27M & 556.8M & $58.71${\scriptsize$\pm$0.17} (3) & -- & $96.16${\scriptsize$\pm$0.06} & -- \\
+MobileNetV2 \cite{mobilenetv2} & 2.48M & 25.8M & $49.49$ (1) & $53.16$ (1) & $93.61$ & $93.96$ \\
+ShuffleNetV2-x1.0 \cite{shufflenetv2} & 1.46M & 46.3M & $55.92${\scriptsize$\pm$0.14} (3) & $57.74${\scriptsize$\pm$0.27} (3) & $94.47$ & $94.82$ \\
+ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.68M & 96.1M & $58.02${\scriptsize$\pm$0.36} (3) & $59.79${\scriptsize$\pm$0.38} (3) & $95.28${\scriptsize$\pm$0.11} & $95.60${\scriptsize$\pm$0.15} \\
+Context Cluster \cite{coc} & 2.46M & 34.4M & $49.56$ (1) & -- & $92.24$ & -- \\
+Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & $56.39${\scriptsize$\pm$0.19} (3) & $58.63${\scriptsize$\pm$0.14} (3) & $95.08$ & $95.19$ \\
 \midrule
-\textbf{All-Local (ours)} & 2.71M & 231.3M & $\mathbf{58.69}${\scriptsize$\pm$0.10} (3) & $\mathbf{61.21}${\scriptsize$\pm$0.40} (3) & $\mathbf{96.10}${\scriptsize$\pm$0.11} & $\mathbf{96.50}${\scriptsize$\pm$0.16} \\
+\textbf{All-Local (ours)} & 2.71M & 231.3M & $\mathbf{58.92}${\scriptsize$\pm$0.28} (3) & $\mathbf{61.30}${\scriptsize$\pm$0.39} (3) & $\mathbf{95.68}${\scriptsize$\pm$0.22} & $\mathbf{96.15}${\scriptsize$\pm$0.12} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -175,19 +175,19 @@ that each row isolates a single factor.
 
 \textbf{Clustering does not pay for itself.} Setting $\rho = 0$, which removes
 the local convolutional branch and leaves pure clustering while keeping every
-other choice identical, costs $0.74$ pp. Setting $\rho = 1$ instead, removing
-the clustering branch entirely, \emph{gains} $+1.03$ pp while using 10\% fewer
+other choice identical, costs $0.39$ pp. Setting $\rho = 1$ instead, removing
+the clustering branch entirely, \emph{gains} $+0.94$ pp while using 10\% fewer
 parameters. The two rows bracket the question the paper asks: at this scale and
 resolution the local branch is what carries the accuracy, and the clustering
 branch is a net cost.
 
 \textbf{The supporting design choices contribute little.} Removing fold
-partitioning ($+0.20$ pp) and removing channel shuffle ($+0.25$ pp) both leave
+partitioning ($+0.27$ pp) and removing channel shuffle ($-0.11$ pp) both leave
 accuracy unchanged within run-to-run variation, so neither is load-bearing.
-Changing cluster occupancy in either direction hurts, by $1.02$ pp at $r = 1$
-and $0.80$ pp at $r = 4$, and giving stage~4 four centres instead of one costs
-$0.31$ pp. The single largest effect in the table is the stem stride: moving
-from stride~1 to stride~2 costs $5.72$ pp. Because that change halves the
+Changing cluster occupancy in either direction hurts, by $0.38$ pp at $r = 1$
+and $1.36$ pp at $r = 4$, and giving stage~4 four centres instead of one costs
+$0.52$ pp. The single largest effect in the table is the stem stride: moving
+from stride~1 to stride~2 costs $5.59$ pp. Because that change halves the
 resolution entering every stage as well as altering cluster occupancy, we
 attribute the bulk of it to resolution rather than to clustering.
 
@@ -195,9 +195,9 @@ attribute the bulk of it to resolution rather than to clustering.
 Table~\ref{tab:operator} compares the fixed sparse LBP-pattern filters used at
 stage~1 of the hybrid model against a plain learned $3\times3$ convolution at
 matched parameters. At 1.62M parameters the learned convolution is ahead by
-$0.10$ pp (McNemar $p = 0.63$); at the 2.71M scale of the proposed model the
-two are indistinguishable over three seeds ($61.21 \pm 0.40$ against
-$61.23 \pm 0.28$, Welch $p = 0.956$). The learned convolution nevertheless
+$0.19$ pp (McNemar $p = 0.63$); at the 2.71M scale of the proposed model the
+two are indistinguishable over three seeds ($61.30 \pm 0.39$ against
+$61.30 \pm 0.15$, Welch $p = 1.00$). The learned convolution nevertheless
 uses $2.50\times$ less peak activation memory at batch 128, because the fixed
 filters expand the channel count eightfold before projecting back. We
 therefore adopt the learned convolution: the hand-designed operator buys no
@@ -205,8 +205,8 @@ accuracy and costs memory.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
-\caption{\uppercase{One-change ablations on Tiny-ImageNet, cross-entropy.
-Each row changes exactly one design decision from the hybrid baseline.}}
+\caption{\uppercase{One-change ablations on Tiny-ImageNet, cross-entropy, on
+test. Each row changes exactly one design decision from the hybrid baseline.}}
 \label{tab:ablation}
 \centering
 \footnotesize
@@ -214,17 +214,17 @@ Each row changes exactly one design decision from the hybrid baseline.}}
 \toprule
 Configuration & Top-1 (\%) & $n$ & $\Delta$ \\
 \midrule
-Hybrid baseline ($\rho{=}0.5$) & $56.40${\scriptsize$\pm$0.21} & 3 & -- \\
+Hybrid baseline ($\rho{=}0.5$) & $56.39${\scriptsize$\pm$0.19} & 3 & -- \\
 \midrule
-$\rho = 0$ (clustering only) & $55.66${\scriptsize$\pm$0.20} & 3 & $-0.74$ \\
-$\rho = 1$ (local only, 1.62M) & $57.43${\scriptsize$\pm$0.14} & 3 & $\mathbf{+1.03}$ \\
+$\rho = 0$ (clustering only) & $56.00${\scriptsize$\pm$0.38} & 3 & $-0.39$ \\
+$\rho = 1$ (local only, 1.62M) & $57.33${\scriptsize$\pm$0.08} & 3 & $\mathbf{+0.94}$ \\
 \midrule
-No fold partitioning & $56.60$ & 1 & $+0.20$ \\
-No channel shuffle & $56.65$ & 1 & $+0.25$ \\
-Stage-4 $2\times2$ proposals & $56.09$ & 1 & $-0.31$ \\
-Occupancy $r = 1$ & $55.38$ & 1 & $-1.02$ \\
-Occupancy $r = 4$ & $55.60$ & 1 & $-0.80$ \\
-Stem stride $1 \rightarrow 2$ & $50.68$ & 1 & $\mathbf{-5.72}$ \\
+No fold partitioning & $56.66$ & 1 & $+0.27$ \\
+No channel shuffle & $56.28$ & 1 & $-0.11$ \\
+Stage-4 $2\times2$ proposals & $55.87$ & 1 & $-0.52$ \\
+Occupancy $r = 1$ & $56.01$ & 1 & $-0.38$ \\
+Occupancy $r = 4$ & $55.03$ & 1 & $-1.36$ \\
+Stem stride $1 \rightarrow 2$ & $50.80$ & 1 & $\mathbf{-5.59}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -241,11 +241,11 @@ memory at batch 128, in MB.}}
 \toprule
 Scale & Stage-1 operator & $n$ & Top-1 (\%) & Mem. \\
 \midrule
-\multirow{2}{*}{1.62M, CE} & fixed LBP & 1 & $57.31$ & 797 \\
- & learned $3\times3$ & 1 & $57.41$ & 317 \\
+\multirow{2}{*}{1.62M, CE} & fixed LBP & 1 & $57.32$ & 797 \\
+ & learned $3\times3$ & 1 & $57.51$ & 317 \\
 \midrule
-\multirow{2}{*}{2.71M, KD} & fixed LBP & 3 & $61.23${\scriptsize$\pm$0.28} & 1037 \\
- & \textbf{learned} $\mathbf{3\times3}$ & 3 & $61.21${\scriptsize$\pm$0.40} & \textbf{415} \\
+\multirow{2}{*}{2.71M, KD} & fixed LBP & 3 & $61.30${\scriptsize$\pm$0.15} & 1037 \\
+ & \textbf{learned} $\mathbf{3\times3}$ & 3 & $61.30${\scriptsize$\pm$0.39} & \textbf{415} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -272,7 +272,7 @@ occupies 10.37\,MB of weights and 22.58\,MB of peak memory, against 43.03\,MB
 and 58.75\,MB for the ResNet-18 teacher: a $4.15\times$ reduction in model
 size and a $2.60\times$ reduction in peak memory, together with $2.41\times$
 fewer operations and a $2.18\times$ lower graph-captured latency (0.804\,ms
-against 1.752\,ms), while being 2.46\,pp more accurate. Against the
+against 1.752\,ms), while being 2.59\,pp more accurate. Against the
 parameter-matched ShuffleNetV2-x1.5 the proposed model uses $2.41\times$ more
 operations, but the measured deployment cost is close: 22.58\,MB against
 20.85\,MB of peak memory at batch one ($1.08\times$) and 0.804\,ms against
@@ -330,7 +330,8 @@ Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & 19.70 & 481.6 & 7.68 & 1.212 &
 \includegraphics[width=\textwidth]{fig2_pareto.pdf}
 \caption{Tiny-ImageNet accuracy against parameters (a) and against
 multiply--accumulate operations (b), both on logarithmic axes. Accuracy is
-the mean over three seeds; cost is measured on a Tesla T4 in a single
+top-1 on test over three seeds (MobileNetV2, one seed); cost is measured on a
+Tesla T4 in a single
 session. Every baseline shown is distilled from the same ResNet-18 teacher;
 the teacher itself is trained with cross-entropy and is marked separately.
 The proposed model lies on the parameter frontier but not on the operation

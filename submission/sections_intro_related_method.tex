@@ -66,28 +66,28 @@ table.
 
 The ablations point one way. Removing the local branch while holding the stem,
 folds, depth and width fixed --- the comparison that isolates clustering from
-everything it is usually bundled with --- costs $0.74$ pp. Removing the
-clustering branch instead gains $1.03$ pp, at 10\% fewer parameters. Fold
+everything it is usually bundled with --- costs $0.39$ pp. Removing the
+clustering branch instead gains $0.94$ pp, at 10\% fewer parameters. Fold
 partitioning and channel shuffle change accuracy by less than run-to-run
 variation. The largest single effect in the whole study is the stem stride, at
-$-5.72$ pp, and because stride~2 halves the resolution entering every
+$-5.59$ pp, and because stride~2 halves the resolution entering every
 subsequent stage, most of that belongs to resolution rather than to anything
 specific to clustering. At this scale the local branch carries the accuracy
 and the clustering branch is a net cost.
 
 Following that conclusion produces a design with no clustering in it at all.
 Scaled to 2.71M parameters, given $7\times7$ depthwise kernels, and trained
-with logit distillation, it reaches $61.21 \pm 0.40$ on Tiny-ImageNet. It
-leads a parameter-matched ShuffleNetV2-x1.5 \cite{shufflenetv2} by $1.49$ pp
-and its own ResNet-18 teacher by $2.46$ pp, both significant over seeds and
+with logit distillation, it reaches $61.30 \pm 0.39$ on Tiny-ImageNet. It
+leads a parameter-matched ShuffleNetV2-x1.5 \cite{shufflenetv2} by $1.51$ pp
+and its own ResNet-18 teacher by $2.59$ pp, both significant over seeds and
 confirmed by a paired test on every seed individually. We chose
 ShuffleNetV2-x1.5 as the primary baseline because an earlier version of our
 model lost to it, and we report it rather than substituting something weaker.
 
 Two caveats belong in the opening rather than buried later. The win holds
 under distillation; with plain cross-entropy the margin over
-ShuffleNetV2-x1.5 falls to $0.47$ pp and does not reach significance, and the
-model merely ties its teacher. And the accuracy is bought with compute: at
+ShuffleNetV2-x1.5 narrows to $0.90$ pp on Tiny-ImageNet and to a
+non-significant $0.39$ pp on CIFAR-10, and the model merely ties its teacher. And the accuracy is bought with compute: at
 matched parameters the proposed model performs 231M multiply--accumulates
 against ShuffleNetV2-x1.5's 96M, though still well under the 557M of the
 ResNet-18 it beats.
@@ -221,7 +221,7 @@ hand-designed filters. Fig.~\ref{fig:arch} shows it.
 
 The stem is a $3\times3$ convolution at stride~1, so stage~1 operates at the
 full $32\times32$ resolution. This is the single most consequential choice in
-the model: moving the stem to stride~2 costs $5.72$ pp
+the model: moving the stem to stride~2 costs $5.59$ pp
 (Table~\ref{tab:ablation}), far more than any other decision we varied. At
 $32\times32$ input there is little spatial information to discard, and
 discarding half of it at the first layer is not recoverable downstream.
@@ -231,9 +231,9 @@ credited the wrong one. It halves the resolution reaching every stage, and it
 also halves the number of points available to each cluster, which the hybrid
 model was designed to avoid. Our ablations bound the second effect. Driving
 occupancy to its degenerate limit directly, one point per centre at every
-stage, costs $1.02$ pp (Table~\ref{tab:ablation}); the occupancy change a
-stride-2 stem induces is milder than that. So at most roughly a fifth of the
-$5.72$ pp can be attributed to cluster occupancy and the remainder belongs to
+stage, costs $0.38$ pp (Table~\ref{tab:ablation}); the occupancy change a
+stride-2 stem induces is milder than that. So under a tenth of the
+$5.59$ pp can be attributed to cluster occupancy and the remainder belongs to
 resolution. The practical reading is that the stem stride is not evidence for
 clustering: it is evidence that $32\times32$ inputs cannot afford early
 downsampling, which would be true of any architecture.

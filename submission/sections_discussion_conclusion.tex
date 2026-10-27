@@ -7,7 +7,7 @@
 
 The result we are most confident in is negative. Built into the same
 MetaFormer skeleton, a pure-clustering model trails a pure-local one by
-$1.77$ pp at one to three million parameters and $32\times32$ input, and the
+$1.33$ pp at one to three million parameters and $32\times32$ input, and the
 local model carries 10\% fewer parameters while doing it. The supporting
 machinery built around clustering
 --- fold partitioning, channel shuffle, a tuned occupancy --- moves accuracy
@@ -20,16 +20,16 @@ The positive result is narrower than the headline number suggests, in three
 specific ways.
 
 \textbf{It depends on distillation.} Under cross-entropy the proposed model
-leads ShuffleNetV2-x1.5 by $0.47$ pp, which does not reach significance over
-three seeds ($p = 0.051$), and it does not beat the ResNet-18 teacher at all
-($-0.07$ pp, $p = 0.405$). Only with distillation does the margin reach $1.49$
-pp and the teacher comparison reverse. Every claim in this paper about
+leads ShuffleNetV2-x1.5 by $0.90$ pp on Tiny-ImageNet ($p = 0.030$) but by a
+non-significant $0.39$ pp on CIFAR-10 ($p = 0.073$), and it does not beat the
+ResNet-18 teacher ($+0.21$ pp, $p = 0.345$). Only with distillation does the
+margin reach $1.51$ pp and the teacher comparison reverse. Every claim in this paper about
 exceeding the teacher is therefore a claim about the distilled setting.
 
 \textbf{We cannot explain the distillation asymmetry.} Given an identical
-teacher, temperature and loss weight, the proposed model gains $2.52$ pp from
-distillation while ShuffleNetV2-x1.5 gains $1.50$ pp and ShuffleNetV2-x1.0
-gains $1.58$ pp. The obvious explanation, that a weaker model has more room to
+teacher, temperature and loss weight, the proposed model gains $2.38$ pp from
+distillation while ShuffleNetV2-x1.5 gains $1.77$ pp and ShuffleNetV2-x1.0
+gains $1.82$ pp. The obvious explanation, that a weaker model has more room to
 improve, predicts the opposite of what we observe: the proposed model has the
 higher cross-entropy accuracy and still gains more.
 
@@ -108,13 +108,13 @@ with the stem, the depth and the fold design.
 We set out to test whether context clustering earns its place in a lightweight
 classifier at low resolution, and found that it does not: at a matched
 parameter budget, replacing the clustering branch with a convolutional one
-improves Tiny-ImageNet accuracy by $1.03$ pp while using fewer parameters, and
+improves Tiny-ImageNet accuracy by $0.94$ pp while using fewer parameters, and
 the design choices that surround clustering contribute less than seed
 variance. Carrying that conclusion through yields a clustering-free model
 which, at 2.71M parameters with $7\times7$ depthwise kernels and logit
-distillation, reaches $61.21 \pm 0.40$ on Tiny-ImageNet and $96.50 \pm 0.16$ on
-CIFAR-10, exceeding a parameter-matched ShuffleNetV2-x1.5 by $1.49$ pp and its
-own ResNet-18 teacher by $2.46$ pp while using $4.16\times$ fewer parameters
+distillation, reaches $61.30 \pm 0.39$ on Tiny-ImageNet and $96.15 \pm 0.12$ on
+CIFAR-10, exceeding a parameter-matched ShuffleNetV2-x1.5 by $1.51$ pp and its
+own ResNet-18 teacher by $2.59$ pp while using $4.16\times$ fewer parameters
 than that teacher. The gain is conditional on distillation and costs
 $2.41\times$ the operations of the parameter-matched baseline, and we report
 both alongside the measured memory and latency rather than parameter counts
