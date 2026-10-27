@@ -219,6 +219,14 @@ LBP filters of the hybrid model appear in the final design.}
 The configuration the ablations select contains no clustering and no
 hand-designed filters. Fig.~\ref{fig:arch} shows it.
 
+Two channels beyond the image carry each pixel's normalised $x$ and $y$
+coordinate in $[-0.5, 0.5]$, so the stem sees five input channels rather than
+three. We inherit this from the hybrid model, where position entered the
+clustering similarity, and hold it fixed across every configuration compared.
+We did not ablate it and claim no benefit from it; we note it because it is
+the one respect in which the all-local model is not a plain convolutional
+network.
+
 The stem is a $3\times3$ convolution at stride~1, so stage~1 operates at the
 full $32\times32$ resolution. This is the single most consequential choice in
 the model: moving the stem to stride~2 costs $5.59$ pp

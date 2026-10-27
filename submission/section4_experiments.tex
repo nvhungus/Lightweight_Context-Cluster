@@ -8,25 +8,26 @@
 \label{sec:setup}
 
 \textbf{Datasets.} We evaluate on Tiny-ImageNet \cite{tinyimagenet} (200
-classes) and CIFAR-10 \cite{cifar} (10 classes). Both are processed at $32\times32$
+classes) and CIFAR-10 \cite{cifar} (10 classes), both at $32\times32$
 resolution. For Tiny-ImageNet this means downsampling from the native
 $64\times64$, which discards information and makes our absolute numbers
-\emph{not} comparable to work that evaluates at $64\times64$; we adopt it
+\emph{not} comparable to work evaluating at $64\times64$; we adopt it
 deliberately, because the regime this paper studies is low-resolution
-classification under a tight parameter budget, and we hold it fixed across
-every model so that all comparisons reported here are internally valid.
-Tiny-ImageNet does not release labels for its test split, so we use the
-official 10{,}000-image validation split as our \emph{test} set and hold out
-a further 10{,}000 images from the training split, drawn with a fixed seed,
-as the validation set used for model selection. No model ever selects an
-epoch using the reported test set.
+classification under a tight parameter budget, and hold it fixed across every
+model so that all comparisons here are internally valid. Tiny-ImageNet
+releases no labels for its test split, so we use the official
+10{,}000-image validation split as our \emph{test} set and hold out a further
+10{,}000 training images, drawn with a fixed seed, as the validation set used
+for model selection. No model ever selects an epoch using the reported test
+set.
 
 \textbf{Budget parity.} Every model, proposed or baseline, is trained for the
 same number of epochs on a given dataset: 100 on Tiny-ImageNet and 250 on
 CIFAR-10. We use identical augmentation --- RandAugment \cite{randaugment},
 random erasing \cite{randomerasing}, mixup \cite{mixup} and CutMix
 \cite{cutmix} --- the same optimiser and schedule, and the same batch size. No
-model receives a tuned recipe of its own.
+model receives a tuned recipe of its own. All training runs under automatic
+mixed precision; the cost measurements in Section~\ref{sec:cost} are fp32.
 
 \textbf{Knowledge distillation.} Where distillation is used, every student,
 \emph{including every baseline}, is distilled from a ResNet-18 teacher
@@ -37,13 +38,13 @@ comparison mixes training signals.
 
 \textbf{Seeds and statistics.} Headline configurations are trained with three
 seeds ($42, 43, 44$); tables report the mean and standard deviation, with the
-number of runs $n$ given explicitly. Differences between groups are tested
-two ways. At the seed level we use Welch's unequal-variance $t$-test on the
-three per-seed accuracies. Within a seed we use an exact paired McNemar test
-\cite{mcnemar} on the $10{,}000$ test predictions of the two models being
-compared, which uses the pairing that a $t$-test over seed means discards. We report both
-because they answer different questions, and we state $n$ wherever it is
-below three.
+number of runs $n$ given explicitly. Differences are tested two ways: at the
+seed level with Welch's unequal-variance $t$-test on the three per-seed
+accuracies, and within a seed with an exact paired McNemar test
+\cite{mcnemar} on the $10{,}000$ test predictions of the two models compared,
+which uses the pairing a $t$-test over seed means discards. We report both
+because they answer different questions, and state $n$ wherever it is below
+three.
 
 \textbf{Counting operations.} Multiply--accumulate counts for the clustering
 branch are easy to understate, and the first version of this work did. An
@@ -52,10 +53,9 @@ it, but the aggregation and dispatch steps are element-wise multiplications
 followed by reductions, which most counters skip. For $N$ points, $M$ centres
 per fold tile and head dimension $d$, each of the three steps costs $NMd$ per
 head, so a counter that sees only the first reports a third of the branch's
-arithmetic. We instrument the clustering operation directly and add the two
-uncounted terms, which is why the operation counts we report for clustering
-models are higher than a naive profile would give. For the proposed model the
-correction is zero, since it contains no clustering.
+arithmetic. We instrument the operation directly and add the two uncounted
+terms, so our counts for clustering models exceed a naive profile. For the
+proposed model the correction is zero, since it contains no clustering.
 
 \textbf{Reproducibility.} Every run writes a provenance record containing the
 git commit, the seed, the resolved teacher checkpoint and the full software
@@ -96,13 +96,11 @@ presenting it as an unconditional property of the architecture.
 distillation recipe, the proposed model gains $+2.38$ pp from distillation
 while ShuffleNetV2-x1.5 gains $+1.77$ pp and ShuffleNetV2-x1.0 gains $+1.82$
 pp. The proposed design converts the same teacher signal into roughly six
-tenths of an additional point. We note that this is not explained by headroom:
-the proposed model has the \emph{higher} cross-entropy accuracy of the pair
-and therefore less room to improve, yet gains more. We have not tested a
-mechanism for this and do not propose one; we report it as an observation and
-leave it to future work. What the comparison does establish is that under a
-fixed, identical distillation protocol applied to every model, the proposed
-architecture is the more accurate one at a matched parameter budget.
+tenths of an additional point. Headroom does not explain it: the proposed
+model has the \emph{higher} cross-entropy accuracy and therefore less room to
+improve, yet gains more. We have tested no mechanism and propose none;
+Section~\ref{sec:limits} sets out the candidates and what would separate
+them.
 
 \textbf{A caveat about the MobileNetV2 row.} MobileNetV2 is the clear outlier
 in Table~\ref{tab:main}: at 2.48M parameters it reaches $49.49$ on
@@ -121,11 +119,11 @@ the table and $1.8\times$ below ShuffleNetV2-x1.0 despite $70\%$ more
 parameters. Most of its capacity sits in channels it can no longer resolve
 spatially.
 
-We report this because it means MobileNetV2 is a weaker baseline here than a
-more carefully adapted version would be, and the weakness flatters our
-results. It is also the reason we treat ShuffleNetV2-x1.5 rather than
-MobileNetV2 as the primary comparison throughout. Read charitably, the row is
-a second and independent instance of the effect that dominates
+We report this because MobileNetV2 is therefore a weaker baseline here than a
+carefully adapted one would be, and that weakness flatters our results; it is
+also why we treat ShuffleNetV2-x1.5 as the primary comparison throughout.
+Read charitably, the row is a second and independent instance of the effect
+that dominates
 Section~\ref{sec:ablation}: at $32\times32$ the decisive variable is how early
 a network discards spatial resolution, and a design that discards it twice
 over cannot be rescued by parameters.
@@ -256,11 +254,10 @@ Scale & Stage-1 operator & $n$ & Top-1 (\%) & Mem. \\
 
 All cost figures in Table~\ref{tab:cost} are measured on a single NVIDIA
 Tesla T4 (fp32, $32\times32$ input, 200-class head). Every model was profiled
-in one session on the same host, so cross-model differences are not
-confounded by hardware; we verified that re-profiling the same models in a
-separate session leaves parameters, operation counts and peak memory
-bit-identical but shifts batch-128 latency by up to 14\%, and we therefore
-report a single session throughout. Latency is given both in eager execution
+in one session on the same host, so cross-model differences are not confounded
+by hardware; re-profiling the same models in a separate session left
+parameters, operation counts and peak memory bit-identical but shifted
+batch-128 latency by up to 14\%, so we report a single session throughout. Latency is given both in eager execution
 and with the forward pass captured in a CUDA Graph; every captured graph was
 verified to reproduce its eager output bitwise, and each figure is the median
 of five timed loops of 100 iterations after a warm-up of at least one second.
@@ -287,17 +284,16 @@ because it is a regime our claims do not cover.
 
 Two measurements caution against treating operation counts as a latency proxy.
 First, realized arithmetic throughput at batch 128 varies by nearly tenfold
-across the models evaluated: ResNet-18 performs $2.41\times$ more
-operations than the proposed model yet completes a batch of 128 in 28.06\,ms
-against 32.76\,ms, because dense $3\times3$ convolutions map onto far
-better-optimised kernels than the bandwidth-bound depthwise--pointwise stacks
-used by lightweight designs. Second, the relative ordering of two models can
-invert between execution modes, as the ShuffleNetV2-x1.5 comparison above
-shows. We therefore report both modes and draw deployment conclusions only
-where they agree. Fig.~\ref{fig:pareto} places every model on the accuracy
-against parameters and accuracy against operations planes; the proposed model
-is on the Pareto frontier of the first and is not Pareto-dominant on the
-second, and we claim only the former.
+across the models evaluated: ResNet-18 performs $2.41\times$ more operations
+than the proposed model yet completes a batch of 128 in 28.06\,ms against
+32.76\,ms, because dense $3\times3$ convolutions map onto far better-optimised
+kernels than the bandwidth-bound depthwise--pointwise stacks lightweight
+designs use. Second, the ordering of two models can invert between execution
+modes, as the ShuffleNetV2-x1.5 comparison shows. We therefore report both and
+draw deployment conclusions only where they agree. Fig.~\ref{fig:pareto}
+places every model on the accuracy against parameters and accuracy against
+operations planes; the proposed model is on the Pareto frontier of the first
+but not the second, and we claim only the former.
 
 \begin{table*}[!t]
 \renewcommand{\arraystretch}{1.15}
