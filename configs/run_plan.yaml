@@ -338,6 +338,19 @@ runs:
   - {id: D17, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 44, conditional: true, answers: "CIFAR-100 baseline CE seed 44"}
   - {id: D18, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-100 proposed CE seed 44"}
 
+  # Seeds 43 and 44 for the rho sweep itself. D9-D18 seed the headline comparison,
+  # which is already significant at one seed (McNemar p=1.4e-07 CE, p=2.4e-05 KD).
+  # The sweep is the weak part: at seed 42 only the extreme contrast separates
+  # (rho=1 vs rho=0, +0.98 pp, p=0.012), while rho=0 vs hybrid (p=0.064) and
+  # rho=1 vs hybrid (p=0.483) do not. These six runs are what would settle it.
+  # All cross-entropy, no teacher, no attached inputs. 7.5 h per seed.
+  - {id: D19, dataset: cifar100, model: hbcc_medium, seed: 43, conditional: true, answers: "CIFAR-100 hybrid rho=0.5 seed 43"}
+  - {id: D20, dataset: cifar100, model: allcluster_medium, seed: 43, conditional: true, answers: "CIFAR-100 rho=0 seed 43"}
+  - {id: D21, dataset: cifar100, model: alllocal_macs_matched, seed: 43, conditional: true, answers: "CIFAR-100 rho=1 seed 43"}
+  - {id: D22, dataset: cifar100, model: hbcc_medium, seed: 44, conditional: true, answers: "CIFAR-100 hybrid rho=0.5 seed 44"}
+  - {id: D23, dataset: cifar100, model: allcluster_medium, seed: 44, conditional: true, answers: "CIFAR-100 rho=0 seed 44"}
+  - {id: D24, dataset: cifar100, model: alllocal_macs_matched, seed: 44, conditional: true, answers: "CIFAR-100 rho=1 seed 44"}
+
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
   - {id: C2, dataset: tin, model: medium_s1_dwconv, seed: 44, conditional: true, answers: "T8"}
