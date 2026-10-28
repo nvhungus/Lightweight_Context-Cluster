@@ -306,14 +306,21 @@ runs:
   - {id: B73, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-10 proposed CE seed 44"}
 
   # ---- D series: CIFAR-100, a third dataset ------------------------------------------
-  # NOT part of the FJCAI submission, which is fixed at eight pages. This block exists so
-  # the clustering ablation and the headline comparison can be repeated on a third dataset
-  # as a separate piece of work.
+  # Going into the FJCAI submission as a compact subsection: at seed 42 the headline
+  # comparison is the strongest cross-entropy evidence we have on any dataset
+  # (+1.83 pp over ShuffleNetV2-x1.5, McNemar p=1.4e-07), which is the claim the paper
+  # otherwise has to hedge.
   # Run order matters: D1 trains the teacher that D3 and D5 consume, and
   # find_teacher_checkpoint looks in the session's own output before --search-dir, so the
   # teacher must precede its students in the same session.
-  #   session 1: D1 D3 D5   6.57 h   teacher, then both KD runs
-  #   session 2: D2 D4      4.50 h   both CE runs, no teacher needed
+  #   session 1: D1 D3 D5      6.57 h   teacher s42, then both KD runs       [done]
+  #   session 2: D2 D4         4.50 h   both CE runs s42, no teacher needed  [done]
+  #   session 3: D6 D7 D8      6.13 h   rho sweep at seed 42                 [done]
+  #   session 4: D19 D20 D21   6.25 h   rho sweep at seed 43                 [done]
+  #   session 5: D9 D10 D11    6.57 h   teacher s43, then both KD runs
+  #   session 6: D12 D13       4.50 h   both CE runs s43
+  #   session 7: D14 D15 D16   6.57 h   teacher s44, then both KD runs
+  #   session 8: D17 D18       4.50 h   both CE runs s44
   - {id: D1, dataset: cifar100, model: resnet18, seed: 42, answers: "CIFAR-100 teacher"}
   - {id: D2, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 42, answers: "CIFAR-100 baseline CE"}
   - {id: D3, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 42, kd_teacher: D1, answers: "CIFAR-100 baseline KD"}
@@ -326,7 +333,9 @@ runs:
   - {id: D7, dataset: cifar100, model: allcluster_medium, seed: 42, answers: "CIFAR-100 rho=0, clustering only"}
   - {id: D8, dataset: cifar100, model: alllocal_macs_matched, seed: 42, answers: "CIFAR-100 rho=1, local only"}
 
-  # Seeds 43 and 44, once the seed-42 picture is known.
+  # Seeds 43 and 44 of the headline comparison. These are the remaining priority:
+  # the comparison the paper reports is still at one seed on CIFAR-100, while the rho
+  # sweep below is now at two and has answered its question. Sessions 5 to 8.
   - {id: D9,  dataset: cifar100, model: resnet18, seed: 43, conditional: true, answers: "CIFAR-100 teacher seed 43"}
   - {id: D10, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 43, kd_teacher: D9, conditional: true, answers: "CIFAR-100 baseline KD seed 43"}
   - {id: D11, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 43, kd_teacher: D9, conditional: true, answers: "CIFAR-100 proposed KD seed 43"}
@@ -338,12 +347,20 @@ runs:
   - {id: D17, dataset: cifar100, model: shufflenet_v2_x1_5, seed: 44, conditional: true, answers: "CIFAR-100 baseline CE seed 44"}
   - {id: D18, dataset: cifar100, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-100 proposed CE seed 44"}
 
-  # Seeds 43 and 44 for the rho sweep itself. D9-D18 seed the headline comparison,
-  # which is already significant at one seed (McNemar p=1.4e-07 CE, p=2.4e-05 KD).
-  # The sweep is the weak part: at seed 42 only the extreme contrast separates
-  # (rho=1 vs rho=0, +0.98 pp, p=0.012), while rho=0 vs hybrid (p=0.064) and
-  # rho=1 vs hybrid (p=0.483) do not. These six runs are what would settle it.
-  # All cross-entropy, no teacher, no attached inputs. 7.5 h per seed.
+  # Seeds 43 and 44 for the rho sweep itself. All cross-entropy, no teacher.
+  #
+  # D19-D21 ran (session 4) and settled this at two seeds. On test, CIFAR-100 CE:
+  #   rho=0.5 hybrid      76.22  76.14  mean 76.18
+  #   rho=0   clustering  75.56  75.90  mean 75.73   -0.45 vs hybrid (Tiny-ImageNet: -0.39)
+  #   rho=1   local       76.48  76.04  mean 76.26   +0.08 vs hybrid (Tiny-ImageNet: +0.94)
+  # Clustering's cost replicates; the local branch's gain does not. rho=1 vs rho=0 is
+  # +0.53 pp on the means (+0.92 at s42, +0.14 at s43), Welch p=0.20.
+  #
+  # D22-D24 (seed 44) are SUPERSEDED and deliberately not run. Sweeping plausible
+  # seed-44 outcomes, only 9 of 24 reach p<0.05, the best realistic case is p~0.025 on a
+  # +0.5 pp margin, and rho=1 vs rho=0.5 stays a wash regardless. Two seeds already
+  # support the sentence the paper needs: the direction replicates on a third dataset,
+  # the magnitude does not. The hours went to D9-D18 instead.
   - {id: D19, dataset: cifar100, model: hbcc_medium, seed: 43, conditional: true, answers: "CIFAR-100 hybrid rho=0.5 seed 43"}
   - {id: D20, dataset: cifar100, model: allcluster_medium, seed: 43, conditional: true, answers: "CIFAR-100 rho=0 seed 43"}
   - {id: D21, dataset: cifar100, model: alllocal_macs_matched, seed: 43, conditional: true, answers: "CIFAR-100 rho=1 seed 43"}
