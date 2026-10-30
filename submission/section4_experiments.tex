@@ -58,6 +58,7 @@ the reported accuracy.
 
 \textbf{Counting operations.} Multiply--accumulate counts for the clustering
 branch are easy to understate, and the first version of this work did. An
+% CUT-CANDIDATE (4th): the NMd derivation; keep the conclusion, compress the algebra.
 automatic counter sees the similarity matrix as a matrix product and counts
 it, but the aggregation and dispatch steps are element-wise multiplications
 followed by reductions, which most counters skip. For $N$ points, $M$ centres
@@ -134,6 +135,7 @@ the table and $1.8\times$ below ShuffleNetV2-x1.0 despite $70\%$ more
 parameters. Most of its capacity sits in channels it can no longer resolve
 spatially.
 
+% CUT-CANDIDATE (1st): editorial framing, no data. Compress to one sentence or drop.
 We report this because MobileNetV2 is therefore a weaker baseline here than a
 carefully adapted one would be, and that weakness flatters our results; it is
 also why we treat ShuffleNetV2-x1.5 as the primary comparison throughout.
@@ -252,6 +254,8 @@ Stem stride $1 \rightarrow 2$ & $50.80$ & 1 & $\mathbf{-5.59}$ \\
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
+% CUT-CANDIDATE (6th, ~1 page): drop this table entirely; its one conclusion fits in
+% two sentences of Section IV-C. Only use if the overflow is a full page.
 \caption{\uppercase{Stage-1 operator: fixed LBP-pattern filters against a learned
 $3\times3$ convolution, at matched parameters. Memory is peak activation
 memory at batch 128, in MB.}}
@@ -277,6 +281,7 @@ Scale & Stage-1 operator & $n$ & Top-1 (\%) & Mem. \\
 
 All cost figures in Table~\ref{tab:cost} are measured on a single NVIDIA
 Tesla T4 (fp32, $32\times32$ input, 200-class head). Every model was profiled
+% CUT-CANDIDATE (3rd): profiling methodology detail; could move to the release README.
 in one session on the same host, so cross-model differences are not confounded
 by hardware; re-profiling the same models in a separate session left
 parameters, operation counts and peak memory bit-identical but shifted
@@ -346,6 +351,7 @@ Hybrid baseline ($\rho{=}0.5$) & 1.80M & 138.9M & 19.70 & 481.6 & 7.68 & 1.212 &
 
 \begin{figure*}[!t]
 \centering
+% CUT-CANDIDATE (5th): 0.85\textwidth saves ~0.08 page at no cost to legibility.
 \includegraphics[width=\textwidth]{fig2_pareto.pdf}
 \caption{Tiny-ImageNet accuracy against parameters (a) and against
 multiply--accumulate operations (b), both on logarithmic axes. Accuracy is
