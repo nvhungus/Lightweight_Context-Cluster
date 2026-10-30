@@ -29,6 +29,16 @@
 %   McNemar s42 CE p=1.4e-07, s42 KD p=2.4e-05, s43 KD p=0.176 (ns)
 %   vs teacher: s42 KD +0.83 p=0.016, s43 KD +0.04 p=0.929 (ns)
 %   rho sweep (CE, 2 seeds): hybrid 76.18, rho=0 75.73 (-0.45), rho=1 76.26 (+0.08)
+%
+% PARAMETER MATCH IS WEAKER HERE, and the prose must say so if inserted.
+% Swapping a 200-class head for a 100-class one returns 100*(width_last + 1)
+% parameters, and the two models have very different final widths: All-Local 310,
+% ShuffleNetV2-x1.5 1024. So budgets that match closely elsewhere diverge here:
+%     200-class: All-Local 2,707,416 vs x1.5 2,683,624  -> ours +0.9%
+%     100-class: All-Local 2,676,316 vs x1.5 2,581,124  -> ours +3.7%
+% "Parameter-matched" is accurate to within one percent on Tiny-ImageNet and to
+% within four percent here, with ours the larger. Either put the figures beside
+% the word or drop it; a reviewer who computes this will find our model bigger.
 % =====================================================================
 
 \subsection{A Third Dataset: CIFAR-100}
@@ -85,9 +95,9 @@ Parameters are for the 100-class head.}}
 Model & Params & CE & KD \\
 \midrule
 ResNet-18 (teacher) \cite{resnet} & 11.22M & $X.XX${\scriptsize$\pm$X.XX} & -- \\
-ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.72M & $X.XX${\scriptsize$\pm$X.XX} & $X.XX${\scriptsize$\pm$X.XX} \\
+ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.58M & $X.XX${\scriptsize$\pm$X.XX} & $X.XX${\scriptsize$\pm$X.XX} \\
 \midrule
-\textbf{All-Local (ours)} & 2.74M & $\mathbf{X.XX}${\scriptsize$\pm$X.XX} & $\mathbf{X.XX}${\scriptsize$\pm$X.XX} \\
+\textbf{All-Local (ours)} & 2.68M & $\mathbf{X.XX}${\scriptsize$\pm$X.XX} & $\mathbf{X.XX}${\scriptsize$\pm$X.XX} \\
 \bottomrule
 \end{tabular}
 \end{table}
