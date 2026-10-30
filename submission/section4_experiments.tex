@@ -289,7 +289,8 @@ parameters, operation counts and peak memory bit-identical but shifted
 batch-128 latency by up to 14\%, so we report a single session throughout. Latency is given both in eager execution
 and with the forward pass captured in a CUDA Graph; every captured graph was
 verified to reproduce its eager output bitwise, and each figure is the median
-of five timed loops of 100 iterations after a warm-up of at least one second.
+of five timed loops of 100 iterations for graph capture and three for eager,
+after a warm-up of at least one second.
 Peak memory is reset per batch size, and resident weights are reported
 separately from activations.
 
@@ -328,8 +329,8 @@ but not the second, and we claim only the former.
 \renewcommand{\arraystretch}{1.15}
 \caption{\uppercase{Measured cost on one NVIDIA Tesla T4, fp32, $32\times32$ input,
 200-class head, all models profiled in a single session. Memory is peak
-allocated; latency is the median of five timed loops. Throughput is measured
-at batch 128.}}
+allocated; latency is the median of five timed loops for graph capture and
+three for eager. Throughput is measured at batch 128.}}
 \label{tab:cost}
 \centering
 \footnotesize
