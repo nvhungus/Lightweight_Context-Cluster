@@ -91,8 +91,9 @@ model lost to it, and we report it rather than substituting something weaker.
 
 Two caveats belong in the opening rather than buried later. The win holds
 under distillation; with plain cross-entropy the margin over
-ShuffleNetV2-x1.5 narrows to $0.90$ pp on Tiny-ImageNet and to a
-non-significant $0.39$ pp on CIFAR-10, and the model merely ties its teacher. And the accuracy is bought with compute: at
+ShuffleNetV2-x1.5 is a smaller but still significant $0.90$ pp on
+Tiny-ImageNet and a non-significant $0.39$ pp on CIFAR-10, and the model
+merely ties its teacher. And the accuracy is bought with compute: at
 matched parameters the proposed model performs 231M multiply--accumulates
 against ShuffleNetV2-x1.5's 96M, though still well under the 557M of the
 ResNet-18 it beats.
