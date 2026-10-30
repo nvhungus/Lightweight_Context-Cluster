@@ -47,8 +47,9 @@ because they answer different questions, and state $n$ wherever it is below
 three.
 
 \textbf{Architecture selection.} All architectural variants were compared on
-the validation split, never on test. Twenty-three Tiny-ImageNet configurations
-were evaluated during design; the width of the final model was solved
+the validation split, never on test. Twenty-three distinct configurations were
+trained on Tiny-ImageNet in total, eighteen of them in the hybrid-block family
+and five external baselines; the width of the final model was solved
 analytically to match ShuffleNetV2-x1.5's parameter count rather than searched
 for accuracy, and the stage-1 operator was chosen for activation memory at
 equal accuracy (Table~\ref{tab:operator}). The validation split used for these
