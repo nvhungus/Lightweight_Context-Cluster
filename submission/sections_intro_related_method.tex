@@ -236,13 +236,16 @@ discarding half of it at the first layer is not recoverable downstream.
 
 A stride-2 stem does two things at once, and the earlier version of this work
 credited the wrong one. It halves the resolution reaching every stage, and it
-also halves the number of points available to each cluster, which the hybrid
-model was designed to avoid. Our ablations bound the second effect. Driving
-occupancy to its degenerate limit directly, one point per centre at every
-stage, costs $0.38$ pp (Table~\ref{tab:ablation}); the occupancy change a
-stride-2 stem induces is milder than that. So under a tenth of the
-$5.59$ pp can be attributed to cluster occupancy and the remainder belongs to
-resolution. The practical reading is that the stem stride is not evidence for
+also reduces the number of points available to each cluster. The effect
+therefore decomposes into an occupancy component and a resolution component,
+and our ablations bound the first. A stride-2 stem reduces the stage-1 map to
+$16\times16$, which at the default fold and proposal sizes yields four points
+per centre --- the same occupancy as the $r = 4$ ablation, which costs $1.36$
+pp. Since $r = 4$ holds resolution fixed at $32\times32$ and varies only
+occupancy, this bounds the occupancy contribution at roughly a quarter of the
+$5.59$ pp stem effect under an additivity assumption; the remaining
+${\approx}4.2$ pp reflects resolution and its interaction with occupancy. The
+practical reading is that the stem stride is not evidence for
 clustering: it is evidence that $32\times32$ inputs cannot afford early
 downsampling, which would be true of any architecture.
 
