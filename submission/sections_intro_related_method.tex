@@ -263,6 +263,10 @@ Section~\ref{sec:ablation} shows that a plain learned convolution matches them
 in accuracy at equal parameters while using $2.50\times$ less activation
 memory, so we use the learned convolution.
 
+% CUT-CANDIDATE (~12 lines): the LBPConv parameter algebra. The conclusion is that
+% the fixed-filter branch is the LARGER of the two by 780 parameters; that fits in two
+% sentences. Prefer this over the Section IV MobileNetV2 prose, which carries the
+% disclosure that the weak baseline flatters us.
 The accounting behind that swap is worth stating, because the first version of
 this work reported it incorrectly. A fixed-filter branch applies a depthwise
 convolution that expands $C$ channels to $8C$, normalises, and projects back
@@ -276,6 +280,9 @@ expansion still performs multiply--accumulates, so the branch is not free on
 either axis, and the eightfold intermediate is what drives its activation
 memory.
 
+% CUT-CANDIDATE (~8 lines): the depthwise-separable cost derivation below is textbook
+% arithmetic. Keep equation (4) and the "enlarging k is nearly free" conclusion; the
+% ratio derivation and the 35,600-parameter accounting can go.
 Stages~2 to~4 mix tokens with a $7\times7$ depthwise convolution followed by a
 $1\times1$ pointwise convolution,
 
