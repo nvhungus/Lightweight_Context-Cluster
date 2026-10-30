@@ -13,8 +13,13 @@ machinery built around clustering
 --- fold partitioning, channel shuffle, a tuned occupancy --- moves accuracy
 by less than seed variance, and the one setting that matters a great deal,
 the stem stride, matters because of resolution rather than because of
-clustering. None of this contradicts \cite{coc}, which reports a different
-operating point; it bounds where the mechanism is useful.
+clustering. Nor is it a question of starved clusters: among the rows that vary occupancy
+alone it ranges from one point per centre to two hundred and fifty-six, with
+effects between $-1.36$ and $+0.27$ pp and no monotonic trend, so the branch
+fails to repay its parameters across the whole range we tested rather than at
+some degenerate corner of it. None of this contradicts \cite{coc}, which
+reports a different operating point; it bounds where the mechanism is
+useful.
 
 The positive result is narrower than the headline number suggests, in three
 specific ways.
