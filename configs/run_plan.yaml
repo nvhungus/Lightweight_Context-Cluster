@@ -64,6 +64,7 @@ models:
   alllocal_2_68m: configs/ablations/hbcc_alllocal_2_68m.yaml
   alllocal_2_68m_dw7: configs/ablations/hbcc_alllocal_2_68m_dw7.yaml
   alllocal_2_68m_conv3x3_dw7: configs/ablations/hbcc_alllocal_2_68m_conv3x3_dw7.yaml
+  alllocal_2_68m_conv3x3_dw7_coordoff: configs/ablations/hbcc_alllocal_2_68m_conv3x3_dw7_coordoff.yaml
   shufflenet_v2_x1_5: configs/baselines/shufflenet_v2_x1_5_cifar.yaml
 
 # Estimated T4 hours per CE run, used by run_queue --deadline-hours. KD runs add ~5%.
@@ -94,6 +95,7 @@ est_hours:
     alllocal_2_68m: 2.8
     alllocal_2_68m_dw7: 2.9
     alllocal_2_68m_conv3x3_dw7: 2.8
+    alllocal_2_68m_conv3x3_dw7_coordoff: 2.8
     shufflenet_v2_x1_5: 2.5
   # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
   # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
@@ -306,7 +308,7 @@ runs:
   - {id: B73, dataset: cifar10, model: alllocal_2_68m_conv3x3_dw7, seed: 44, conditional: true, answers: "CIFAR-10 proposed CE seed 44"}
 
   # ---- D series: CIFAR-100, a third dataset ------------------------------------------
-  # Going into the FJCAI submission as a compact subsection: at seed 42 the headline
+  # Reported in the paper as a limitation rather than a headline dataset: at seed 42 the
   # comparison is the strongest cross-entropy evidence we have on any dataset
   # (+1.83 pp over ShuffleNetV2-x1.5, McNemar p=1.4e-07), which is the claim the paper
   # otherwise has to hedge.
@@ -367,6 +369,32 @@ runs:
   - {id: D22, dataset: cifar100, model: hbcc_medium, seed: 44, conditional: true, answers: "CIFAR-100 hybrid rho=0.5 seed 44"}
   - {id: D23, dataset: cifar100, model: allcluster_medium, seed: 44, conditional: true, answers: "CIFAR-100 rho=0 seed 44"}
   - {id: D24, dataset: cifar100, model: alllocal_macs_matched, seed: 44, conditional: true, answers: "CIFAR-100 rho=1 seed 44"}
+
+  # ---- E series: does CoordConv account for the headline margin? ----------------------
+  # Every HBCC-family config sets use_coord: true; the torchvision baselines take three input
+  # channels. The headline comparison therefore confounds the coordinate channels with the
+  # architecture, and no coord-off run exists among the 91 released runs. These six are that
+  # run, at the final 2.71M configuration, on Tiny-ImageNet where the margin is largest.
+  #
+  # Decision rule, fixed before the runs: let delta = coord_off minus coord_on, KD, 3 seeds.
+  #   delta >= -0.2 pp  -> keep CoordConv, report that it accounts for <= 0.2 of the 1.51 pp
+  #                        margin. Dropping it would mean re-running the headline on both
+  #                        datasets (12 runs, ~40 h) for no gain.
+  #   -0.2 to -0.6 pp   -> keep, disclose with the measurement, and soften the headline to
+  #                        "the design, including its coordinate channels".
+  #   worse than -0.6   -> material. Cheapest repair is to give ShuffleNetV2-x1.5 the same
+  #                        five-channel stem (3 KD runs, ~7.5 h), not to strip ours.
+  #
+  # The CE arm additionally lets the distillation gain be computed without CoordConv, which
+  # tests a mechanism not among the three Section V lists. Teachers are the existing TIN
+  # ResNet-18 runs: A2 (seed 42), A10 (seed 43), A18 (seed 44).
+  # Split across two accounts: E1-E3 (CE, 8.4 h) on one, E4-E6 (KD, 9.6 h) on the other.
+  - {id: E1, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 42, answers: "CoordConv off, CE seed 42"}
+  - {id: E2, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 43, answers: "CoordConv off, CE seed 43"}
+  - {id: E3, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 44, answers: "CoordConv off, CE seed 44"}
+  - {id: E4, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 42, kd_teacher: A2, answers: "CoordConv off, KD seed 42"}
+  - {id: E5, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 43, kd_teacher: A10, answers: "CoordConv off, KD seed 43"}
+  - {id: E6, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 44, kd_teacher: A18, answers: "CoordConv off, KD seed 44"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
