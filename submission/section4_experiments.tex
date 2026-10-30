@@ -72,6 +72,11 @@ git commit, the seed, the resolved teacher checkpoint and the full software
 and hardware environment, together with its per-image test predictions. The
 code, the configuration of every run reported here, and those per-run records
 are available at \mbox{\url{github.com/nvhungus/context-cluster-ablation}}.
+cuDNN is non-deterministic in our training configuration, so two runs with the
+same seed can differ slightly; the seed variance we report includes this
+source. Teacher checkpoints are not included in the release, so reproducing a
+distilled student requires retraining its teacher, and that non-determinism
+means exact reproduction is not guaranteed.
 
 % ---------------------------------------------------------------------
 \subsection{Main Results}
