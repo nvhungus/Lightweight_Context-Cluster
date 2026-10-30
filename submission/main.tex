@@ -201,14 +201,17 @@ run-to-run variation, and the one setting that matters greatly turns out to
 matter because of input resolution rather than because of grouping. A
 hand-designed sparse local filter is likewise matched by a plain learned
 convolution at equal parameters, while costing considerably more activation
-memory. Carrying these findings through yields a clustering-free design that,
-at the parameter budget of a strong lightweight baseline, exceeds that baseline
-on both datasets and, on the harder one, the larger network used to distil it.
-The gain
-holds under distillation and is paid for in arithmetic, and we report measured
-memory and latency on real hardware alongside parameter counts, showing that
-operation counts are a poor predictor of measured speed for models of this
-kind. We release every configuration, seed and per-image prediction behind the
+memory. Carrying these findings through yields a clustering-free design which,
+at the parameter budget of a strong lightweight baseline and under knowledge
+distillation, exceeds that baseline on both datasets --- by one and a half
+points on Tiny-ImageNet --- and exceeds by two and a half points the larger
+network used to distil it, at under a quarter of that network's parameters.
+Trained with plain cross-entropy the design still leads the baseline on
+Tiny-ImageNet by a smaller but statistically reliable margin, while the
+comparison against the teacher becomes a tie. The cost is arithmetic, and we
+report measured memory and latency on real hardware alongside parameter
+counts, showing that operation counts are a poor predictor of measured speed
+for models of this kind. We release every configuration, seed and per-image prediction behind the
 results.
 \end{abstract}
 
