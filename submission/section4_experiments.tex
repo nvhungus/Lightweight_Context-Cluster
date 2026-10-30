@@ -46,6 +46,16 @@ which uses the pairing a $t$-test over seed means discards. We report both
 because they answer different questions, and state $n$ wherever it is below
 three.
 
+\textbf{Architecture selection.} All architectural variants were compared on
+the validation split, never on test. Twenty-three Tiny-ImageNet configurations
+were evaluated during design; the width of the final model was solved
+analytically to match ShuffleNetV2-x1.5's parameter count rather than searched
+for accuracy, and the stage-1 operator was chosen for activation memory at
+equal accuracy (Table~\ref{tab:operator}). The validation split used for these
+comparisons is the same split used for checkpoint selection; because all
+reported numbers are test-set, this affects only which epoch is selected, not
+the reported accuracy.
+
 \textbf{Counting operations.} Multiply--accumulate counts for the clustering
 branch are easy to understate, and the first version of this work did. An
 automatic counter sees the similarity matrix as a matrix product and counts
