@@ -34,11 +34,16 @@ convolution it mixes tokens by clustering them, and it reports competitive
 accuracy at 5.3M parameters on $224\times224$ inputs. Its authors are explicit
 that the goal is a new perspective on visual representation rather than state
 of the art. What remains untested is whether the mechanism survives
-compression: at one to three million parameters and $32\times32$ inputs, each
-clustering stage sees few points, and the fold partitioning that keeps
-clusters populated at high resolution has little left to partition. We treat
-this as an open empirical question about operating regime, not as a criticism
-of the original work.
+compression to one to three million parameters and $32\times32$ inputs. One
+might expect it to struggle there because each stage has few points to group.
+We test that expectation directly rather than assuming it: at $32\times32$ the
+default configuration groups sixteen points per centre at every stage, and the
+ablations vary this from one to two hundred and fifty-six points per centre
+without a monotonic effect on accuracy. The failure we document is therefore
+not starvation of the clustering operation; it is a failure to repay
+parameters at an occupancy that is not degenerate. We treat this as an open
+empirical question about operating regime, not as a criticism of the original
+work.
 
 The question is under-tested for a structural reason. New token mixers are
 normally validated at the scale where they are proposed, and the lightweight

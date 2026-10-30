@@ -185,9 +185,11 @@ mixing visual tokens, and it performs competitively at the model sizes and
 input resolutions where it was introduced. Whether it survives compression is a
 separate question. Lightweight classifiers deployed at the edge are usually
 constrained by the memory their weights occupy rather than by the arithmetic
-the processor can retire, and at a few million parameters with small inputs
-each clustering stage sees few points to group. We test the mechanism directly
-in that regime. Starting from a hybrid block whose token mixer splits channels
+the processor can retire. One might expect a clustering mixer to struggle at a
+few million parameters and small inputs because each stage has few points to
+group; we test that expectation rather than assuming it, and find that varying
+the points per cluster centre over more than two orders of magnitude does not
+account for the outcome. Starting from a hybrid block whose token mixer splits channels
 between a clustering branch and a local convolutional branch, we vary one
 design decision at a time under a matched training budget, repeat every
 configuration over several seeds, and compare with paired significance tests
