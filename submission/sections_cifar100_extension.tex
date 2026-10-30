@@ -1,0 +1,117 @@
+% =====================================================================
+% CONTINGENCY DRAFT -- NOT INPUT FROM main.tex.
+%
+% Insert only if the promotion conditions are all met at three seeds:
+%   (1) KD margin over ShuffleNetV2-x1.5 >= +1.0 pp with Welch p < 0.05, AND
+%   (2) McNemar significant on >= 2 of 3 seeds, AND
+%   (3) CE margin >= +1.0 pp.
+% Standing as of 30 Oct: condition (1) fails at n=2 (+0.96 pp, one of two seeds
+% not significant) and (3) is unmeasured. If any condition fails, this file is
+% not used and the Section V paragraph stands instead.
+%
+% To insert:  \input{sections_cifar100_extension}  after \label{sec:cost} block
+%             in section4_experiments.tex, and delete the CIFAR-100 paragraph
+%             from sections_discussion_conclusion.tex.
+%
+% PLACEHOLDERS. Every X.XX below is an unmeasured value. Source runs:
+%   D12  cifar100_shufflenet_v2_x1_5_ce_s43            -> x1.5 CE seed 43      (session 6)
+%   D13  cifar100_alllocal_2_68m_conv3x3_dw7_ce_s43    -> All-Local CE seed 43 (session 6)
+%   D14  cifar100_resnet18_ce_s44                      -> teacher seed 44      (session 7)
+%   D15  cifar100_shufflenet_v2_x1_5_kd_s44            -> x1.5 KD seed 44      (session 7)
+%   D16  cifar100_alllocal_2_68m_conv3x3_dw7_kd_s44    -> All-Local KD seed 44 (session 7)
+%   D17  cifar100_shufflenet_v2_x1_5_ce_s44            -> x1.5 CE seed 44      (session 8)
+%   D18  cifar100_alllocal_2_68m_conv3x3_dw7_ce_s44    -> All-Local CE seed 44 (session 8)
+% Recompute every cell from test_predictions.npy, never from test_metrics.json.
+%
+% MEASURED values currently in hand, for reference when filling:
+%   seed 42: teacher 79.03 | x1.5 CE 76.87, KD 78.41 | All-Local CE 78.70, KD 79.86
+%   seed 43: teacher 79.27 | x1.5 CE  X.XX, KD 78.84 | All-Local CE  X.XX, KD 79.31
+%   McNemar s42 CE p=1.4e-07, s42 KD p=2.4e-05, s43 KD p=0.176 (ns)
+%   vs teacher: s42 KD +0.83 p=0.016, s43 KD +0.04 p=0.929 (ns)
+%   rho sweep (CE, 2 seeds): hybrid 76.18, rho=0 75.73 (-0.45), rho=1 76.26 (+0.08)
+% =====================================================================
+
+\subsection{A Third Dataset: CIFAR-100}
+\label{sec:cifar100}
+
+Both datasets reported so far sit at the ends of the label-count range this
+regime spans: ten classes and two hundred. CIFAR-100 sits between them at the
+same $32\times32$ resolution and the same training budget, which makes it a
+test of whether the headline result depends on label granularity.
+Table~\ref{tab:cifar100} reports it under the protocol of
+Section~\ref{sec:setup}, unchanged in every respect but the dataset.
+
+\textbf{The headline comparison holds.} Under distillation the proposed model
+reaches $X.XX \pm X.XX$ against $X.XX \pm X.XX$ for the
+parameter-matched ShuffleNetV2-x1.5, a margin of $+X.XX$ pp (Welch
+$p = X.XXX$), and a paired McNemar test separates them on $X$ of the three
+seeds. Without distillation the margin is $+X.XX$ pp ($p = X.XXX$). The
+cross-entropy margin is the largest of the three datasets, which matters
+because it is the comparison that is weakest on CIFAR-10
+(Section~\ref{sec:main}).
+
+\textbf{The teacher comparison does not.} Against the ResNet-18 teacher the
+distilled model is $+X.XX$ pp, which does not reach significance over seeds
+($p = X.XXX$) and is a tie on at least one seed under a paired test. The
+beat-the-teacher result therefore remains a Tiny-ImageNet result, and we do
+not generalise it here.
+
+\textbf{The clustering ablation replicates in direction only.} Repeating the
+$\rho$ sweep on CIFAR-100 under the same protocol, removing the local branch
+($\rho = 0$) costs $0.45$ pp against $0.39$ pp on Tiny-ImageNet --- close
+agreement. Removing the clustering branch instead ($\rho = 1$) gains $0.08$ pp,
+against $0.94$ pp on Tiny-ImageNet. The sign of both effects reproduces and the
+cost of discarding the local branch reproduces in size, but the \emph{benefit}
+of discarding the clustering branch does not: at a hundred classes the two
+sit within run-to-run variation of each other, with the clustering-free model
+still carrying 10\% fewer parameters. We therefore state the ablation's
+conclusion as directional --- the clustering branch does not repay its
+parameters --- rather than as an effect of a particular size, and we note that
+the magnitude we measure on Tiny-ImageNet is not reproduced on a third dataset.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.15}
+\caption{\uppercase{CIFAR-100, top-1 test accuracy (\%), mean $\pm$ standard
+deviation over three seeds. Same protocol as Table~\ref{tab:main}: 250 epochs,
+identical augmentation, optimiser and schedule, and every distilled student
+taught by a ResNet-18 trained on the same dataset and seed with
+$\alpha = 0.5$, $T = 4$. ResNet-18 is that teacher and so has no KD entry.
+Parameters are for the 100-class head.}}
+\label{tab:cifar100}
+\centering
+\footnotesize
+\begin{tabular}{@{}lrcc@{}}
+\toprule
+Model & Params & CE & KD \\
+\midrule
+ResNet-18 (teacher) \cite{resnet} & 11.22M & $X.XX${\scriptsize$\pm$X.XX} & -- \\
+ShuffleNetV2-x1.5 \cite{shufflenetv2} & 2.72M & $X.XX${\scriptsize$\pm$X.XX} & $X.XX${\scriptsize$\pm$X.XX} \\
+\midrule
+\textbf{All-Local (ours)} & 2.74M & $\mathbf{X.XX}${\scriptsize$\pm$X.XX} & $\mathbf{X.XX}${\scriptsize$\pm$X.XX} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------
+% If this subsection is inserted, these changes elsewhere become MANDATORY:
+%
+%  1. main.tex abstract: "exceeds that baseline on both datasets" -> "on all
+%     three datasets". The Tiny-ImageNet-only teacher clause is unaffected and
+%     must stay scoped, because CIFAR-100 ties the teacher as well.
+%  2. sections_intro_related_method.tex, contributions list: "beats a
+%     parameter-matched baseline on two datasets" -> "on three datasets".
+%  3. sections_intro_related_method.tex, two-caveats paragraph: add the
+%     CIFAR-100 cross-entropy margin beside the Tiny-ImageNet and CIFAR-10 ones.
+%  4. sections_discussion_conclusion.tex: delete the CIFAR-100 limitation
+%     paragraph, and keep only the rho-sweep sentence, which stays true.
+%  5. sections_discussion_conclusion.tex conclusion: "on two datasets" -> three.
+%  6. section4_experiments.tex, Section IV-A Datasets: add CIFAR-100 (100
+%     classes, 45k/5k/10k, split_seed 42, 250 epochs).
+%  7. Section IV-A Seeds: the "three seeds" promise now covers CIFAR-100 too,
+%     so sessions 7 and 8 must have completed. At n=2 this claim is false.
+%  8. Release repo: the eleven CIFAR-100 runs must be published before the URL
+%     in Section IV-A can be said to cover them.
+%
+% Page cost of this subsection as drafted: roughly 0.45 page (prose ~0.30,
+% table ~0.15). The cut list in the % CUT-CANDIDATE markers must cover it.
+% ---------------------------------------------------------------------
