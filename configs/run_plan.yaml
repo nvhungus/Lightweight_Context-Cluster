@@ -66,6 +66,7 @@ models:
   alllocal_2_68m_conv3x3_dw7: configs/ablations/hbcc_alllocal_2_68m_conv3x3_dw7.yaml
   alllocal_2_68m_conv3x3_dw7_coordoff: configs/ablations/hbcc_alllocal_2_68m_conv3x3_dw7_coordoff.yaml
   shufflenet_v2_x1_5: configs/baselines/shufflenet_v2_x1_5_cifar.yaml
+  shufflenet_v2_x1_5_coord: configs/baselines/shufflenet_v2_x1_5_coord_cifar.yaml
 
 # Estimated T4 hours per CE run, used by run_queue --deadline-hours. KD runs add ~5%.
 # Tiny-ImageNet: measured in sessions A_s1/B_s1 (4 data workers). Runs are CPU-bound (JPEG decode +
@@ -97,6 +98,7 @@ est_hours:
     alllocal_2_68m_conv3x3_dw7: 2.8
     alllocal_2_68m_conv3x3_dw7_coordoff: 2.8
     shufflenet_v2_x1_5: 2.5
+    shufflenet_v2_x1_5_coord: 2.5
   # CIFAR-10 measured in B_s3: much cheaper per image than Tiny-ImageNet (in-memory 32x32 arrays
   # vs JPEG decode), so 250 epochs costs less than Tiny-ImageNet's 100. HBCC entries are scaled
   # from the measured CNN runs and are still provisional.
@@ -395,6 +397,25 @@ runs:
   - {id: E4, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 42, kd_teacher: A2, answers: "CoordConv off, KD seed 42"}
   - {id: E5, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 43, kd_teacher: A10, answers: "CoordConv off, KD seed 43"}
   - {id: E6, dataset: tin, model: alllocal_2_68m_conv3x3_dw7_coordoff, seed: 44, kd_teacher: A18, answers: "CoordConv off, KD seed 44"}
+
+  # ---- F series: CONTINGENCY, only if the E series triggers branch (c) --------------
+  # Branch (c) is coord_off minus coord_on worse than -0.6 pp on the KD headline, i.e. the
+  # coordinate channels account for more than about 40% of the 1.51 pp margin. If that
+  # happens the Table I comparison is confounded and must be repaired. Repairing it by
+  # giving the baseline the same five-channel input is 3 runs; stripping the channels from
+  # our model instead would mean re-running the headline on both datasets, 12 runs and
+  # roughly 40 h, so this is the cheaper direction.
+  #
+  # Tiny-ImageNet only, KD only: that is where the margin is largest and where all three
+  # seeds exist. CIFAR-10 is not re-run, and Section V would say so.
+  #
+  # Requires the code path in lightweight_hbcc/models/baselines.py (use_coord on the
+  # ShuffleNetV2-x1.5 builder). SMOKE-TEST FIRST: run_queue.py --ids F1 --smoke takes about
+  # two minutes and will catch a shape error before 8.6 h of GPU time is committed.
+  # Teachers are the existing TIN ResNet-18 runs, as for the E series.
+  - {id: F1, dataset: tin, model: shufflenet_v2_x1_5_coord, seed: 42, kd_teacher: A2, conditional: true, answers: "baseline + CoordConv, KD seed 42"}
+  - {id: F2, dataset: tin, model: shufflenet_v2_x1_5_coord, seed: 43, kd_teacher: A10, conditional: true, answers: "baseline + CoordConv, KD seed 43"}
+  - {id: F3, dataset: tin, model: shufflenet_v2_x1_5_coord, seed: 44, kd_teacher: A18, conditional: true, answers: "baseline + CoordConv, KD seed 44"}
 
   # ---- Conditional (T8): extra seeds ONLY for ablations within 1.0 pp (val) of B1 --------
   - {id: C1, dataset: tin, model: medium_s1_dwconv, seed: 43, conditional: true, answers: "T8"}
