@@ -25,10 +25,25 @@
 %
 % MEASURED values currently in hand, for reference when filling:
 %   seed 42: teacher 79.03 | x1.5 CE 76.87, KD 78.41 | All-Local CE 78.70, KD 79.86
-%   seed 43: teacher 79.27 | x1.5 CE  X.XX, KD 78.84 | All-Local CE  X.XX, KD 79.31
-%   McNemar s42 CE p=1.4e-07, s42 KD p=2.4e-05, s43 KD p=0.176 (ns)
+%   seed 43: teacher 79.27 | x1.5 CE 77.26, KD 78.84 | All-Local CE 78.55, KD 79.31
+%   McNemar s42 CE p=1.4e-07, s43 CE p=2.5e-04, s42 KD p=2.4e-05, s43 KD p=0.176 (ns)
 %   vs teacher: s42 KD +0.83 p=0.016, s43 KD +0.04 p=0.929 (ns)
 %   rho sweep (CE, 2 seeds): hybrid 76.18, rho=0 75.73 (-0.45), rho=1 76.26 (+0.08)
+%
+% CROSS-ENTROPY MARGIN, two seeds (session 6 landed 31 Oct):
+%   seed 42  78.70 - 76.87 = +1.83
+%   seed 43  78.55 - 77.26 = +1.29
+%   2-seed mean +1.56, spread 0.54, and McNemar separates them on BOTH seeds.
+% It is holding: still the largest cross-entropy margin of the three datasets
+% (Tiny-ImageNet +0.90 at three seeds, CIFAR-10 +0.39 not significant), and no
+% longer resting on one seed. Condition 3 of the promotion rule is effectively met;
+% seed 44 need only return >= -0.12 pp to keep the three-seed mean above +1.0.
+%
+% THE BINDING CONSTRAINT IS NOW THE KD ARM, not cross-entropy. Two-seed KD margins
+% are +1.45 and +0.47, mean +0.96, so seed 44 must return >= +1.08 pp for the
+% three-seed mean to clear +1.0. Over a grid of plausible seed-44 outcomes, whenever
+% that margin condition is met the Welch p is also below 0.05, so condition 1
+% reduces to a single number: the seed-44 KD margin.
 %
 % PARAMETER MATCH IS WEAKER HERE, and the prose must say so if inserted.
 % Swapping a 200-class head for a 100-class one returns 100*(width_last + 1)
@@ -55,10 +70,16 @@ Section~\ref{sec:setup}, unchanged in every respect but the dataset.
 reaches $X.XX \pm X.XX$ against $X.XX \pm X.XX$ for the
 parameter-matched ShuffleNetV2-x1.5, a margin of $+X.XX$ pp (Welch
 $p = X.XXX$), and a paired McNemar test separates them on $X$ of the three
-seeds. Without distillation the margin is $+X.XX$ pp ($p = X.XXX$). The
-cross-entropy margin is the largest of the three datasets, which matters
-because it is the comparison that is weakest on CIFAR-10
-(Section~\ref{sec:main}).
+seeds.
+
+\textbf{Cross-entropy is stronger here than on either other dataset.} Without
+distillation the margin is $+X.XX$ pp ($p = X.XXX$), with the paired test
+significant on $X$ of the three seeds. That is the comparison the paper is
+weakest on elsewhere --- $+0.90$ pp on Tiny-ImageNet and a non-significant
+$+0.39$ pp on CIFAR-10 --- so a hundred-class dataset at the same resolution
+and budget reproducing it at a larger margin is the single most useful thing
+this dataset contributes. It does not rescue the CIFAR-10 result, which stands
+as reported; it bounds how much of that result is dataset-specific.
 
 \textbf{The teacher comparison does not.} Against the ResNet-18 teacher the
 distilled model is $+X.XX$ pp, which does not reach significance over seeds
